@@ -1,10 +1,12 @@
-# Encartes Skills
+# Encartes e Ofertas de Supermercados de Fortaleza
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](#pré-requisitos)
 [![Plataforma](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-blue)](#pré-requisitos)
 
-Quatro [skills para o Claude Code](https://docs.claude.com/en/docs/claude-code/skills) em PT-BR que baixam os encartes semanais de supermercados brasileiros em alta resolução, prontos pra consulta ou comparação de promoções. Cada skill consulta endpoints públicos (API/CDN) do respectivo site, com volume baixo, para uso pessoal.
+Baixe os encartes semanais dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz e Super do Povo) em alta resolução, prontos pra consulta ou comparação de promoções. O repositório reúne [skills para o Claude Code](https://docs.claude.com/en/docs/claude-code/skills) em PT-BR, uma por rede, e cada uma consulta endpoints públicos (API/CDN) do respectivo site, com volume baixo, para uso pessoal.
+
+Os nomes técnicos individuais (`cometa-encartes`, `saoluiz-encartes` e `superdopovo-encartes`) permanecem estáveis para não quebrar instalações existentes. `todos-encartes` é a skill guarda-chuva que dispara as três de uma vez.
 
 Os encartes chegam como JPG em ~200 DPI (rasterizados do PDF quando possível), organizados por rede e data, com um `manifest.json` por rodada. Um orquestrador dispara as três redes de uma vez, e um módulo compartilhado reaproveita por hardlink páginas já baixadas em rodadas anteriores, pra rodadas repetidas na mesma semana serem rápidas.
 

@@ -1,7 +1,7 @@
 ---
 name: todos-encartes
 description: >
-  Baixa de uma vez os encartes das três redes (Cometa, São Luiz e Super do Povo), disparando as três skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes ou superdopovo-encartes) em vez desta.
+  Skill guarda-chuva de encartes e ofertas dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz e Super do Povo): baixa de uma vez os encartes das três redes, disparando as três skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes ou superdopovo-encartes) em vez desta.
 ---
 
 # Todos os Encartes (skill mãe)
