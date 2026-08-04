@@ -10,6 +10,7 @@ const ROOT = path.join(__dirname, "..");
 const REDES = [
   { nome: "Cometa", pasta: "cometa-encartes" },
   { nome: "SaoLuiz", pasta: "saoluiz-encartes" },
+  { nome: "MercadaoSaoLuiz", pasta: "mercadao-encartes" },
   { nome: "SuperDoPovo", pasta: "superdopovo-encartes" },
 ];
 
@@ -99,7 +100,7 @@ async function preChecagem() {
   }
 
   for (const rede of REDES) {
-    if (rede.pasta === "cometa-encartes") continue; // não usa Playwright
+    if (rede.pasta === "cometa-encartes" || rede.pasta === "mercadao-encartes") continue; // não usa Playwright
     const ok = await checarPlaywright(rede.pasta);
     if (!ok) {
       problemas.push(
@@ -134,7 +135,7 @@ function parseArgs(argv) {
     else if (arg === "--all") args.all = true;
     else if (arg === "--output") {
       throw new Error(
-        "--output não é suportado aqui: as três redes se sobrescreveriam na mesma pasta.\n" +
+        "--output não é suportado aqui: as quatro redes se sobrescreveriam na mesma pasta.\n" +
         "Use --base para mudar só a raiz, ou rode a skill de cada rede individualmente com --output."
       );
     }
@@ -150,13 +151,13 @@ function printHelp() {
 Uso:
   node todos-encartes/baixar-todos.js [opções]
 
-Dispara Cometa, São Luiz e Super do Povo em sequência.
+Dispara Cometa, Mercadinhos São Luiz, Mercadão São Luiz e Super do Povo em sequência.
 
 Opções:
   --base          Pasta raiz. Padrão: ~/Downloads/Encartes
   --dpi           Resolução de rasterização (Cometa e SuperDoPovo). Padrão: 200
-  --only-newest   Baixa apenas o encarte mais recente de cada rede (útil para teste)
-  --sem-reuso     Não reaproveita páginas de rodadas anteriores
+  --only-newest   Baixa apenas o encarte mais recente de cada rede (não se aplica ao Mercadão)
+  --sem-reuso     Não reaproveita páginas de rodadas anteriores (não se aplica ao Mercadão)
   --all           Inclui encartes já vencidos (só SuperDoPovo)
   --help          Exibe esta mensagem
 
@@ -173,6 +174,10 @@ function argsComuns(args) {
 }
 
 function argsPorRede(pasta, args) {
+  if (pasta === "mercadao-encartes") {
+    // Mercadão aceita só --base: não tem reuso, only-newest, dpi nem all
+    return ["--base", args.base];
+  }
   const out = argsComuns(args);
   if (pasta === "cometa-encartes" && args.dpi) out.push("--dpi", args.dpi);
   if (pasta === "superdopovo-encartes") {
