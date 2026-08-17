@@ -12,6 +12,8 @@ const REDES = [
   { nome: "SaoLuiz", pasta: "saoluiz-encartes" },
   { nome: "MercadaoSaoLuiz", pasta: "mercadao-encartes" },
   { nome: "SuperDoPovo", pasta: "superdopovo-encartes" },
+  { nome: "Atacadao", pasta: "atacadao-encartes" },
+  { nome: "Guara", pasta: "guara-encartes" },
 ];
 
 const MESES = [
@@ -94,13 +96,13 @@ async function preChecagem() {
   const poppler = checarPoppler();
   if (poppler.length > 0) {
     problemas.push(
-      `Dependência(s) ausente(s): ${poppler.join(", ")} (usado por Cometa e SuperDoPovo).\n` +
+      `Dependência(s) ausente(s): ${poppler.join(", ")} (usado por Cometa, SuperDoPovo e Atacadão).\n` +
       `Instale com: brew install poppler`
     );
   }
 
   for (const rede of REDES) {
-    if (rede.pasta === "cometa-encartes" || rede.pasta === "mercadao-encartes") continue; // não usa Playwright
+    if (rede.pasta === "cometa-encartes" || rede.pasta === "mercadao-encartes" || rede.pasta === "atacadao-encartes") continue; // não usa Playwright
     const ok = await checarPlaywright(rede.pasta);
     if (!ok) {
       problemas.push(
@@ -151,11 +153,11 @@ function printHelp() {
 Uso:
   node todos-encartes/baixar-todos.js [opções]
 
-Dispara Cometa, Mercadinhos São Luiz, Mercadão São Luiz e Super do Povo em sequência.
+Dispara Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão e Guará em sequência.
 
 Opções:
   --base          Pasta raiz. Padrão: ~/Downloads/Encartes
-  --dpi           Resolução de rasterização (Cometa e SuperDoPovo). Padrão: 200
+  --dpi           Resolução de rasterização (Cometa, SuperDoPovo e Atacadão). Padrão: 200
   --only-newest   Baixa apenas o encarte mais recente de cada rede (não se aplica ao Mercadão)
   --sem-reuso     Não reaproveita páginas de rodadas anteriores (não se aplica ao Mercadão)
   --all           Inclui encartes já vencidos (só SuperDoPovo)
@@ -179,7 +181,9 @@ function argsPorRede(pasta, args) {
     return ["--base", args.base];
   }
   const out = argsComuns(args);
-  if (pasta === "cometa-encartes" && args.dpi) out.push("--dpi", args.dpi);
+  if ((pasta === "cometa-encartes" || pasta === "atacadao-encartes") && args.dpi) {
+    out.push("--dpi", args.dpi);
+  }
   if (pasta === "superdopovo-encartes") {
     if (args.dpi) out.push("--dpi", args.dpi);
     if (args.all) out.push("--all");

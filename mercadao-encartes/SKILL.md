@@ -1,7 +1,6 @@
 ---
 name: mercadao-encartes
-description: >
-  Baixa os encartes atuais do Mercadão São Luiz, em todas as páginas disponíveis na home e em /ofertas, na resolução original do Wix. Use quando o usuário mencionar "baixar encartes Mercadão", "encartes Mercadão São Luiz", "encartes Mercadão", ou colar URLs de mercadaosaoluiz.com.br.
+description: Baixa os encartes atuais do Mercadão São Luiz, em todas as páginas disponíveis na home e em /ofertas, na resolução original do Wix. Use quando o usuário mencionar "baixar encartes Mercadão", "encartes Mercadão São Luiz", "encartes Mercadão", ou colar URLs de mercadaosaoluiz.com.br.
 ---
 
 # Mercadão São Luiz Encartes
@@ -11,7 +10,7 @@ Baixa as imagens de encarte que o site publica diretamente na home e em `/oferta
 ## Comando padrão
 
 ```bash
-node mercadao-encartes/download-encartes.js
+node mercadao-encartes/scripts/download-encartes.js
 ```
 
 Saída: `~/Downloads/Encartes/MercadaoSaoLuiz/DD-Mês/`.
@@ -23,19 +22,19 @@ Saída: `~/Downloads/Encartes/MercadaoSaoLuiz/DD-Mês/`.
 3. Agrupa nomes como `_page-0001` e `-imagens-0` como páginas de um encarte.
 4. Grava `manifest.json` com URLs, nomes e contagem de páginas.
 
-O site não fornece uma vigência estruturada. Depois do download, ler os JPGs visualmente e só incluir em análises de ofertas itens cuja vigência esteja clara. O script nunca interpreta o conteúdo das imagens.
+O site não fornece uma vigência estruturada. Depois do download, ler os JPGs visualmente e só incluir no `ofertas.json` itens cuja vigência esteja clara. O script nunca interpreta o conteúdo das imagens.
 
 ## Opções
 
 ```bash
 # Só descobre e mostra as páginas, sem gravar arquivos
-node mercadao-encartes/download-encartes.js --dry-run
+node mercadao-encartes/scripts/download-encartes.js --dry-run
 
 # Pasta de destino alternativa
-node mercadao-encartes/download-encartes.js --output /caminho/completo
+node mercadao-encartes/scripts/download-encartes.js --output /caminho/completo
 
 # Pasta raiz alternativa, contendo MercadaoSaoLuiz/DD-Mês/
-node mercadao-encartes/download-encartes.js --base /outro/caminho
+node mercadao-encartes/scripts/download-encartes.js --base /outro/caminho
 ```
 
 ## Comportamento ao acionar

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mercadão São Luiz Encartes"
+  short_description: "Baixa encartes do Mercadão São Luiz"
+  default_prompt: "Use $mercadao-encartes para baixar os encartes atuais do Mercadão São Luiz."
