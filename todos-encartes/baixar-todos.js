@@ -5,16 +5,9 @@ const path = require("path");
 const os = require("os");
 const { spawn, execFileSync } = require("child_process");
 
-const ROOT = path.join(__dirname, "..");
+const { REDES } = require("../lib/redes");
 
-const REDES = [
-  { nome: "Cometa", pasta: "cometa-encartes" },
-  { nome: "SaoLuiz", pasta: "saoluiz-encartes" },
-  { nome: "MercadaoSaoLuiz", pasta: "mercadao-encartes" },
-  { nome: "SuperDoPovo", pasta: "superdopovo-encartes" },
-  { nome: "Atacadao", pasta: "atacadao-encartes" },
-  { nome: "Guara", pasta: "guara-encartes" },
-];
+const ROOT = path.join(__dirname, "..");
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -93,16 +86,19 @@ async function checarPlaywright(pasta) {
 async function preChecagem() {
   const problemas = [];
 
-  const poppler = checarPoppler();
-  if (poppler.length > 0) {
-    problemas.push(
-      `Dependência(s) ausente(s): ${poppler.join(", ")} (usado por Cometa, SuperDoPovo e Atacadão).\n` +
-      `Instale com: brew install poppler`
-    );
+  const usamPoppler = REDES.filter((r) => r.deps.poppler);
+  if (usamPoppler.length > 0) {
+    const faltando = checarPoppler();
+    if (faltando.length > 0) {
+      problemas.push(
+        `Dependência(s) ausente(s): ${faltando.join(", ")} (usado por ${usamPoppler.map((r) => r.nome).join(", ")}).\n` +
+        `Instale com: brew install poppler`
+      );
+    }
   }
 
   for (const rede of REDES) {
-    if (rede.pasta === "cometa-encartes" || rede.pasta === "mercadao-encartes" || rede.pasta === "atacadao-encartes") continue; // não usa Playwright
+    if (!rede.deps.playwright) continue;
     const ok = await checarPlaywright(rede.pasta);
     if (!ok) {
       problemas.push(
@@ -137,7 +133,7 @@ function parseArgs(argv) {
     else if (arg === "--all") args.all = true;
     else if (arg === "--output") {
       throw new Error(
-        "--output não é suportado aqui: as quatro redes se sobrescreveriam na mesma pasta.\n" +
+        `--output não é suportado aqui: as ${REDES.length} redes se sobrescreveriam na mesma pasta.\n` +
         "Use --base para mudar só a raiz, ou rode a skill de cada rede individualmente com --output."
       );
     }
@@ -153,7 +149,7 @@ function printHelp() {
 Uso:
   node todos-encartes/baixar-todos.js [opções]
 
-Dispara Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão e Guará em sequência.
+Dispara ${REDES.map((r) => r.nome).join(", ")} em sequência.
 
 Opções:
   --base          Pasta raiz. Padrão: ~/Downloads/Encartes
@@ -168,25 +164,19 @@ Saída padrão:
 `);
 }
 
-function argsComuns(args) {
-  const out = ["--base", args.base];
-  if (args.onlyNewest) out.push("--only-newest");
-  if (args.semReuso) out.push("--sem-reuso");
-  return out;
+// Converte camelCase para kebab-case: onlyNewest -> --only-newest
+function kebab(flag) {
+  return "--" + flag.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
 }
 
-function argsPorRede(pasta, args) {
-  if (pasta === "mercadao-encartes") {
-    // Mercadão aceita só --base: não tem reuso, only-newest, dpi nem all
-    return ["--base", args.base];
-  }
-  const out = argsComuns(args);
-  if ((pasta === "cometa-encartes" || pasta === "atacadao-encartes") && args.dpi) {
-    out.push("--dpi", args.dpi);
-  }
-  if (pasta === "superdopovo-encartes") {
-    if (args.dpi) out.push("--dpi", args.dpi);
-    if (args.all) out.push("--all");
+function argsPorRede(rede, args) {
+  const out = ["--base", args.base];
+  for (const flag of rede.flags) {
+    if (flag === "dpi") {
+      if (args.dpi) out.push("--dpi", args.dpi);
+    } else if (args[flag]) {
+      out.push(kebab(flag));
+    }
   }
   return out;
 }
@@ -244,8 +234,8 @@ async function main() {
 
   for (const rede of REDES) {
     console.log(`─── ${rede.nome} ───`);
-    const scriptPath = path.join(ROOT, rede.pasta, "download-encartes.js");
-    const { code, erroSpawn } = await rodarScript(scriptPath, argsPorRede(rede.pasta, args));
+    const scriptPath = path.join(ROOT, rede.pasta, rede.script);
+    const { code, erroSpawn } = await rodarScript(scriptPath, argsPorRede(rede, args));
     console.log("");
 
     if (erroSpawn || code !== 0) {
