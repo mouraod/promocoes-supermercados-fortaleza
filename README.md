@@ -1,4 +1,4 @@
-# Encartes de Supermercado
+# Promoções de Supermercados de Fortaleza
 
 Skills para agentes de código (Claude Code, Codex, Pi) baixarem os encartes
 vigentes de supermercados brasileiros em alta resolução, prontos para o agente
@@ -19,8 +19,8 @@ ler as páginas e comparar ofertas.
 ## Instalar
 
 ```bash
-git clone https://github.com/mouraod/encartes-supermercado.git ~/Developer/encartes-supermercado
-ln -s ~/Developer/encartes-supermercado/cometa-encartes ~/.claude/skills/cometa-encartes
+git clone https://github.com/mouraod/promocoes-supermercados-fortaleza.git ~/Developer/promocoes-supermercados-fortaleza
+ln -s ~/Developer/promocoes-supermercados-fortaleza/cometa-encartes ~/.claude/skills/cometa-encartes
 ```
 
 Ajuste o destino do symlink para o seu agente: `~/.codex/skills` (Codex) ou
