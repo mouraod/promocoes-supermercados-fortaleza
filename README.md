@@ -13,6 +13,7 @@ ler as páginas e comparar ofertas.
 | `superdopovo-encartes` | Super do Povo |
 | `mercadao-encartes` | Mercadão São Luiz |
 | `atacadao-encartes` | Atacadão |
+| `guara-encartes` | Supermercado Guará |
 | `todos-encartes` | Baixa os encartes de todos os mercados de uma vez |
 
 ## Instalar
