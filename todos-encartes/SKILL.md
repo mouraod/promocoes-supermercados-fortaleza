@@ -8,7 +8,7 @@ description: >
 
 Roda `cometa-encartes`, `saoluiz-encartes`, `mercadao-encartes`, `superdopovo-encartes`, `atacadao-encartes` e `guara-encartes` em sequência, sem precisar disparar uma por uma. Não substitui as skills individuais — elas continuam funcionando isoladas, e é o que usar quando o pedido for de uma rede só.
 
-Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (Cometa, São Luiz, Super do Povo, Atacadão e Guará; o Mercadão baixa JPGs prontos e é idempotente por arquivo, sem reuso).
+Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (todas as seis redes).
 
 ## Comando padrão
 
@@ -44,7 +44,7 @@ node todos-encartes/baixar-todos.js --sem-reuso
 node todos-encartes/baixar-todos.js --all
 ```
 
-O Mercadão aceita só `--base`: o orquestrador não repassa pra ele `--only-newest`, `--sem-reuso`, `--dpi` nem `--all`, porque o downloader dele não tem essas opções.
+O Mercadão aceita `--base` e `--sem-reuso`: o orquestrador não repassa pra ele `--only-newest`, `--dpi` nem `--all`, porque o downloader dele não tem essas opções.
 
 O Guará aceita `--base`, `--only-newest` e `--sem-reuso`, mas não `--dpi` nem `--all` (sem rasterização de PDF e sem filtro de vigência).
 

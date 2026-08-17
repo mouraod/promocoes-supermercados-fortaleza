@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-const fs = require("fs/promises");
-const fsSync = require("fs");
-const os = require("os");
-const path = require("path");
-const { Readable, Transform } = require("stream");
-const { pipeline } = require("stream/promises");
+// Skill Mercadão São Luiz: baixa o HTML da home e de /ofertas, extrai os
+// encartes das imagens Wix (srcSet, área mínima e proporção de encarte) e
+// devolve páginas em resolução original para o pipeline baixar em pool.
+// Os parsers de HTML são funções puras, testadas em download-encartes.test.js.
+
+const { baixarEncartes, parsearArgs, slugify } = require("../../lib/pipeline");
 
 const FONTES = [
   { nome: "home", url: "https://www.mercadaosaoluiz.com.br/" },
@@ -13,19 +13,12 @@ const FONTES = [
 ];
 const HOST_WIX = "static.wixstatic.com";
 const DOWNLOAD_TIMEOUT_MS = 30_000;
-const MAX_DOWNLOAD_BYTES = 75 * 1024 * 1024;
 const CONCORRENCIA_DOWNLOADS = 4;
 const AREA_MINIMA_ENCARTE = 2_000_000;
 const PROPORCAO_MINIMA = 1.30;
 const PROPORCAO_MAXIMA = 1.55;
-const MESES = [
-  "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
 
-function nomePastaData(data) {
-  return `${String(data.getDate()).padStart(2, "0")}-${MESES[data.getMonth()]}`;
-}
+// ─── parsers puros do HTML Wix ────────────────────────────────────────────────
 
 function escaparRegex(texto) {
   return texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -45,19 +38,6 @@ function atributo(tag, nome) {
   const padrao = new RegExp(`\\b${escaparRegex(nome)}=(?:"([^"]*)"|'([^']*)')`, "i");
   const achado = tag.match(padrao);
   return achado ? decodificarHtml(achado[1] ?? achado[2] ?? "") : "";
-}
-
-function slugificar(texto) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9 _.-]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/[ _.]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase() || "encarte";
 }
 
 function candidatosSrcSet(srcSet) {
@@ -160,7 +140,7 @@ function descobrirEncartes(respostas) {
   const grupos = new Map();
   for (const item of porMidia.values()) {
     const dados = metadadosPagina(item.alt, item.nomeOriginal, item.mediaId);
-    const slug = slugificar(dados.nome);
+    const slug = slugify(dados.nome);
     const chave = slug;
     if (!grupos.has(chave)) grupos.set(chave, { nome: dados.nome, slug, paginas: [] });
     grupos.get(chave).paginas.push({ ...item, numero: dados.pagina });
@@ -190,6 +170,8 @@ function atribuirArquivos(encartes) {
   return encartes;
 }
 
+// ─── rede ─────────────────────────────────────────────────────────────────────
+
 async function buscarHtml(fonte) {
   const controlador = new AbortController();
   const tempo = setTimeout(() => controlador.abort(), DOWNLOAD_TIMEOUT_MS);
@@ -207,125 +189,9 @@ async function buscarHtml(fonte) {
   }
 }
 
-async function arquivoNaoVazio(caminho) {
-  try {
-    return (await fs.stat(caminho)).size > 0;
-  } catch {
-    return false;
-  }
-}
-
-async function baixarImagem(url, destino) {
-  if (await arquivoNaoVazio(destino)) return false;
-
-  const destinoTemporario = `${destino}.part`;
-  const urlValidada = new URL(url);
-  if (urlValidada.protocol !== "https:" || urlValidada.hostname !== HOST_WIX) {
-    throw new Error(`URL de download não permitida: ${url}`);
-  }
-
-  const controlador = new AbortController();
-  const tempo = setTimeout(() => controlador.abort(), DOWNLOAD_TIMEOUT_MS);
-  try {
-    const resposta = await fetch(urlValidada, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-      signal: controlador.signal,
-    });
-    if (!resposta.ok) throw new Error(`Falha ${resposta.status} ao baixar ${url}`);
-    if (!resposta.body) throw new Error(`Resposta sem conteúdo ao baixar ${url}`);
-    if (!/^image\/(jpeg|png)(;|$)/i.test(resposta.headers.get("content-type") ?? "")) {
-      throw new Error(`Resposta não é JPEG ou PNG: ${url}`);
-    }
-
-    const tamanho = Number(resposta.headers.get("content-length"));
-    if (Number.isFinite(tamanho) && tamanho > MAX_DOWNLOAD_BYTES) {
-      throw new Error(`Imagem excede o limite de 75 MB: ${url}`);
-    }
-
-    let bytesBaixados = 0;
-    const limite = new Transform({
-      transform(parte, _codificacao, callback) {
-        bytesBaixados += parte.length;
-        if (bytesBaixados > MAX_DOWNLOAD_BYTES) {
-          controlador.abort();
-          callback(new Error(`Imagem excede o limite de 75 MB: ${url}`));
-          return;
-        }
-        callback(null, parte);
-      },
-    });
-
-    await fs.rm(destinoTemporario, { force: true });
-    await pipeline(Readable.fromWeb(resposta.body), limite, fsSync.createWriteStream(destinoTemporario, { flags: "wx" }));
-    await fs.rename(destinoTemporario, destino);
-    return true;
-  } catch (erro) {
-    await fs.rm(destinoTemporario, { force: true });
-    throw erro;
-  } finally {
-    clearTimeout(tempo);
-  }
-}
-
-async function baixarPaginas(encartes, pastaJpg, baixar = baixarImagem) {
-  const paginas = encartes.flatMap((encarte) => encarte.paginas);
-  let proxima = 0;
-  let novas = 0;
-  let puladas = 0;
-  let erro = null;
-
-  async function worker() {
-    while (!erro) {
-      const pagina = paginas[proxima++];
-      if (!pagina) return;
-      try {
-        const baixou = await baixar(pagina.urlOriginal, path.join(pastaJpg, pagina.arquivo));
-        if (baixou) novas += 1;
-        else puladas += 1;
-      } catch (causa) {
-        erro = causa;
-      }
-    }
-  }
-
-  const workers = Math.min(CONCORRENCIA_DOWNLOADS, paginas.length);
-  await Promise.all(Array.from({ length: workers }, worker));
-  if (erro) throw erro;
-  return { novas, puladas };
-}
-
-function parsearArgumentos(argv) {
-  const args = {
-    base: path.join(os.homedir(), "Downloads", "Encartes"),
-    output: null,
-    dryRun: false,
-  };
-  for (let indice = 0; indice < argv.length; indice += 1) {
-    const arg = argv[indice];
-    if (arg === "--base") args.base = argv[++indice];
-    else if (arg === "--output") args.output = argv[++indice];
-    else if (arg === "--dry-run") args.dryRun = true;
-    else if (arg === "--help" || arg === "-h") {
-      console.log(`Uso:\n  node download-encartes.js [opções]\n\nOpções:\n  --base     Pasta raiz. Padrão: ~/Downloads/Encartes\n  --output   Substitui base+rede+data por um caminho completo\n  --dry-run  Descobre os encartes sem baixar arquivos\n  --help     Exibe esta mensagem\n\nSaída padrão:\n  <base>/MercadaoSaoLuiz/DD-Mês/JPG/<encarte>-pagina-NN.jpg\n  <base>/MercadaoSaoLuiz/DD-Mês/manifest.json`);
-      process.exit(0);
-    } else {
-      throw new Error(`Argumento desconhecido: ${arg}`);
-    }
-    if ((arg === "--base" || arg === "--output") && !args[arg.slice(2)]) {
-      throw new Error(`${arg} exige um caminho`);
-    }
-  }
-  return args;
-}
-
-function resumo(encartes) {
-  return encartes.flatMap((encarte) => encarte.paginas.map((pagina) =>
-    `${encarte.slug} | página ${pagina.numero} | ${pagina.fontes.join(", ")} | ${pagina.urlOriginal}`
-  ));
-}
-
-async function executar(argv = process.argv.slice(2)) {
-  const args = parsearArgumentos(argv);
+// Adapter para o pipeline: mapeia os encartes do Wix para o contrato
+// { slug, paginas: [{url, ext, arquivo}], meta }.
+async function descobrir(_args) {
   const respostas = await Promise.all(FONTES.map(buscarHtml));
   const porFonte = new Map(respostas.map((resposta) => [resposta.fonte, extrairEncartes(resposta.html, resposta.fonte).length]));
   for (const fonte of FONTES) {
@@ -333,49 +199,76 @@ async function executar(argv = process.argv.slice(2)) {
   }
 
   const encartes = atribuirArquivos(descobrirEncartes(respostas));
-  const totalPaginas = encartes.reduce((total, encarte) => total + encarte.paginas.length, 0);
-  if (totalPaginas === 0) {
+  if (encartes.length === 0) {
     throw new Error("Nenhuma imagem de encarte encontrada. O HTML do Wix pode ter mudado.");
   }
 
+  return encartes.map((encarte) => ({
+    slug: encarte.slug,
+    paginas: encarte.paginas.map((pagina) => ({
+      url: pagina.urlOriginal,
+      ext: pagina.extensao,
+      arquivo: pagina.arquivo,
+      numero: pagina.numero,
+      fontes: pagina.fontes,
+    })),
+    meta: {
+      nome: encarte.nome,
+      paginasDetalhadas: encarte.paginas.map((pagina) => ({
+        numero: pagina.numero,
+        arquivo: pagina.arquivo,
+        mediaId: pagina.mediaId,
+        urlOriginal: pagina.urlOriginal,
+        fontes: pagina.fontes,
+      })),
+    },
+  }));
+}
+
+function resumo(encartes) {
+  return encartes.flatMap((encarte) => encarte.paginas.map((pagina) =>
+    `${encarte.slug} | página ${pagina.numero} | ${pagina.fontes.join(", ")} | ${pagina.url}`
+  ));
+}
+
+function ajuda() {
+  return `
+Uso:
+  node mercadao-encartes/scripts/download-encartes.js [opções]
+
+Opções:
+  --base     Pasta raiz. Padrão: ~/Downloads/Encartes
+  --output   Substitui base+rede+data por um caminho completo
+  --sem-reuso  Não reaproveita páginas de rodadas anteriores
+  --dry-run  Descobre os encartes sem baixar arquivos
+  --help     Exibe esta mensagem
+
+Saída padrão:
+  <base>/MercadaoSaoLuiz/DD-Mês/JPG/<encarte>-pagina-NN.jpg
+  <base>/MercadaoSaoLuiz/DD-Mês/manifest.json
+`;
+}
+
+async function executar(argv = process.argv.slice(2)) {
+  const args = await parsearArgs(argv, { aceitas: ["sem-reuso", "dry-run"], ajuda });
+
   if (args.dryRun) {
+    const encartes = await descobrir(args);
+    const totalPaginas = encartes.reduce((total, encarte) => total + encarte.paginas.length, 0);
     console.log(`Mercadão São Luiz | ${encartes.length} encarte(s) | ${totalPaginas} página(s)`);
     for (const linha of resumo(encartes)) console.log(linha);
     return { encartes, totalPaginas, seco: true };
   }
 
-  const data = nomePastaData(new Date());
-  const destino = args.output ?? path.join(args.base, "MercadaoSaoLuiz", data);
-  const pastaJpg = path.join(destino, "JPG");
-  await fs.mkdir(pastaJpg, { recursive: true });
-
-  const { novas, puladas } = await baixarPaginas(encartes, pastaJpg);
-
-  const manifest = {
-    mercado: "mercadao_sao_luiz",
-    rede: "Mercadão São Luiz",
-    data,
-    fontes: FONTES,
-    baixadoEm: new Date().toISOString(),
-    totalEncartes: encartes.length,
-    totalPaginas,
-    encartes: encartes.map((encarte) => ({
-      nome: encarte.nome,
-      slug: encarte.slug,
-      paginas: encarte.paginas.map((pagina) => ({
-        numero: pagina.numero,
-        arquivo: path.join("JPG", pagina.arquivo),
-        mediaId: pagina.mediaId,
-        urlOriginal: pagina.urlOriginal,
-        fontes: pagina.fontes,
-      })),
-    })),
-  };
-  await fs.writeFile(path.join(destino, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-  console.log(`Mercadão São Luiz | ${data}`);
-  console.log(`Encartes: ${encartes.length} | Páginas: ${totalPaginas} (${novas} novas, ${puladas} puladas)`);
-  console.log(`Destino: ${destino}`);
-  return { encartes, totalPaginas, destino, novas, puladas };
+  return baixarEncartes({
+    rede: "MercadaoSaoLuiz",
+    source: FONTES,
+    descobrir,
+    args,
+    extra: { mercado: "mercadao_sao_luiz" },
+    hostsPermitidos: [HOST_WIX],
+    concorrencia: CONCORRENCIA_DOWNLOADS,
+  });
 }
 
 if (require.main === module) {
@@ -388,10 +281,9 @@ if (require.main === module) {
 module.exports = {
   analisarUrlWix,
   atribuirArquivos,
-  baixarPaginas,
+  descobrir,
   descobrirEncartes,
   executar,
   extrairEncartes,
   metadadosPagina,
-  parsearArgumentos,
 };

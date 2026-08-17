@@ -35,6 +35,9 @@ node mercadao-encartes/scripts/download-encartes.js --output /caminho/completo
 
 # Pasta raiz alternativa, contendo MercadaoSaoLuiz/DD-Mês/
 node mercadao-encartes/scripts/download-encartes.js --base /outro/caminho
+
+# Baixa tudo de novo, sem reaproveitar páginas de rodadas anteriores
+node mercadao-encartes/scripts/download-encartes.js --sem-reuso
 ```
 
 ## Comportamento ao acionar

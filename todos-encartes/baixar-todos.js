@@ -155,7 +155,7 @@ Opções:
   --base          Pasta raiz. Padrão: ~/Downloads/Encartes
   --dpi           Resolução de rasterização (Cometa, SuperDoPovo e Atacadão). Padrão: 200
   --only-newest   Baixa apenas o encarte mais recente de cada rede (não se aplica ao Mercadão)
-  --sem-reuso     Não reaproveita páginas de rodadas anteriores (não se aplica ao Mercadão)
+  --sem-reuso     Não reaproveita páginas de rodadas anteriores
   --all           Inclui encartes já vencidos (só SuperDoPovo)
   --help          Exibe esta mensagem
 

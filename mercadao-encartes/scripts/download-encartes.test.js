@@ -3,10 +3,10 @@ const test = require("node:test");
 
 const {
   atribuirArquivos,
-  baixarPaginas,
   descobrirEncartes,
   extrairEncartes,
 } = require("./download-encartes");
+const { baixarPaginasEmPool } = require("../../lib/pipeline");
 
 const URL_A = "https://static.wixstatic.com/media/7c5a00_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa~mv2.jpg/v1/fill/w_1600,h_2262,al_c,q_90/Folheto_page-0001.jpg";
 const URL_B = "https://static.wixstatic.com/media/7c5a00_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb~mv2.jpg/v1/fill/w_1600,h_2262,al_c,q_90/Folheto_page-0002.jpg";
@@ -41,11 +41,11 @@ test("agrupa páginas e evita colisão de arquivo", () => {
 test("baixa páginas com concorrência limitada", async () => {
   let ativas = 0;
   let maximas = 0;
-  const encartes = [{ paginas: Array.from({ length: 9 }, (_, numero) => ({
+  const paginas = Array.from({ length: 9 }, (_, numero) => ({
     urlOriginal: `https://exemplo.test/${numero}.jpg`, arquivo: `${numero}.jpg`,
-  })) }];
+  }));
 
-  const resultado = await baixarPaginas(encartes, "/tmp", async () => {
+  const resultado = await baixarPaginasEmPool(paginas, 4, async () => {
     ativas += 1;
     maximas = Math.max(maximas, ativas);
     await new Promise((resolve) => setTimeout(resolve, 5));
