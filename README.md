@@ -4,9 +4,21 @@
 [![node](https://img.shields.io/badge/node-%E2%89%A518-green)](https://nodejs.org)
 [![testes](https://img.shields.io/github/actions/workflow/status/mouraod/promocoes-supermercados-fortaleza/test.yml?branch=main&label=testes)](../../actions)
 
-Skills para agentes de código (Claude Code, Codex e Pi) baixarem os encartes
-vigentes dos supermercados de Fortaleza em alta resolução, organizados por
-mercado e data, prontos para o agente ler as páginas e comparar ofertas.
+Skills que ensinam seu agente de código (Claude Code, Codex ou Pi) a baixar
+os encartes vigentes dos supermercados de Fortaleza, em alta resolução e
+organizados por mercado e data. Aí é só conversar: onde o café está mais
+barato, o que vale a pena nesta semana.
+
+Na prática:
+
+1. Você pede: "baixar encartes do São Luiz" (ou de outro mercado, ou de todos)
+2. A skill baixa tudo e organiza em `~/Downloads/Encartes/`
+3. Você pergunta: "compara o preço do arroz nos encartes desta semana"
+
+Nenhum script interpreta imagem. A leitura das ofertas é visual, feita pelo
+próprio agente; o script cuida só do download. Comparar com a sua lista de
+compras, montar a lista da semana e decidir o que vale a pena é conversa com
+o agente.
 
 ## Mercados
 
@@ -30,7 +42,7 @@ Todas aceitam `--base`, `--only-newest` e `--sem-reuso`. O Mercadão não tem
 git clone https://github.com/mouraod/promocoes-supermercados-fortaleza.git ~/Developer/promocoes-supermercados-fortaleza
 cd ~/Developer/promocoes-supermercados-fortaleza
 
-# symlink das 7 skills para o seu agente (exemplo com Claude Code)
+# liga as 7 skills ao seu agente (exemplo com Claude Code)
 for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes atacadao-encartes guara-encartes todos-encartes; do
   ln -sfn "$(pwd)/$s" ~/.claude/skills/$s
 done
@@ -39,16 +51,19 @@ done
 for s in saoluiz-encartes superdopovo-encartes guara-encartes; do (cd $s && npm install); done
 ```
 
-Ajuste o destino dos symlinks para o seu agente: `~/.codex/skills` (Codex),
-`~/.pi/agent/skills` (Pi) ou `~/.claude/skills` (Claude Code). Poppler via
-`brew install poppler` (macOS) quando a skill rasteriza PDF. Node 18 ou
-superior (fetch nativo).
+Ajuste o destino dos symlinks conforme seu agente: `~/.claude/skills`
+(Claude Code), `~/.codex/skills` (Codex) ou `~/.pi/agent/skills` (Pi).
+Duas dependências externas, só quando a skill precisa:
+
+- **Node 18 ou superior**, para todas (o `fetch` nativo)
+- **poppler** (`brew install poppler` no macOS), para as skills que
+  transformam PDF em imagem: Cometa, Super do Povo e Atacadão
 
 ## Como usar
 
 Peça ao agente: "baixar encartes do Cometa", "baixar encartes São Luiz",
 "baixar todos os encartes", ou cole um link de encarte. A saída fica
-organizada por mercado e data, com um manifest por rodada:
+organizada por mercado e data, com um manifest (índice da rodada) ao lado:
 
 ```
 ~/Downloads/Encartes/
@@ -62,13 +77,9 @@ organizada por mercado e data, com um manifest por rodada:
         └── manifest.json
 ```
 
-A leitura das ofertas é visual, feita pelo próprio agente; nenhum script
-interpreta imagem. O script é só o download. Comparar com a sua lista de
-compras, montar a lista da semana e decidir o que vale a pena é conversa com
-o agente.
-
 Rodadas repetidas na mesma semana são rápidas: páginas de encartes que já
-existem em rodadas anteriores são reaproveitadas por hardlink.
+existem em rodadas anteriores são reaproveitadas por hardlink, sem baixar
+de novo.
 
 ## Por dentro
 
@@ -94,4 +105,13 @@ flowchart LR
 
 ## Licença
 
-[MIT](./LICENSE)
+[MIT](./LICENSE), que em bom português significa:
+
+- ✅ **Pode usar, copiar, modificar, publicar e distribuir** à vontade, para
+  qualquer finalidade, inclusive comercial
+- ⚠️ **A única condição:** manter o aviso de copyright e o texto da licença
+  junto com as cópias
+- ❌ **Sem garantia:** o software é fornecido "como está"; o autor não
+  responde por qualquer dano ou problema decorrente do uso
+
+O texto legal completo está no arquivo [LICENSE](./LICENSE).
