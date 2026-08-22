@@ -13,7 +13,9 @@ interceptar a lista oficial de ofertas; as imagens são baixadas pelo pipeline.
 ## Setup
 
 ```bash
-cd assai-encartes && npm install
+cd assai-encartes
+npm install
+npx playwright install chromium
 ```
 
 ## Comando padrão
@@ -53,5 +55,5 @@ node assai-encartes/download-encartes.js --sem-reuso
 
 1. Executar o script direto, sem perguntas desnecessárias.
 2. Mostrar a saída do downloader e informar o destino.
-3. Se Playwright estiver ausente, orientar: `cd assai-encartes && npm install`.
+3. Se Playwright ou Chromium estiver ausente, orientar: `cd assai-encartes && npm install && npx playwright install chromium`.
 4. Para analisar promoções, ler visualmente as imagens baixadas.

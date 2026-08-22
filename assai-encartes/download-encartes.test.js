@@ -53,10 +53,19 @@ const payload = {
       lojas: [{ eid: "6", nid: "172" }],
       images: [],
     },
+    {
+      id: "../../fora",
+      title: "Oferta com ID malicioso",
+      start_date: "22/08/2026",
+      end_date: "28/08/2026",
+      destaque: 20,
+      lojas: [{ eid: "6", nid: "172" }],
+      images: [{ url: `${URL_CDN}/maliciosa-1.jpg` }],
+    },
   ],
 };
 
-test("prepararOfertas mantém apenas campanhas do Bezerra M, ordenadas e com todas as páginas", () => {
+test("prepararOfertas mantém apenas campanhas válidas do Bezerra M, ordenadas e com todas as páginas", () => {
   const avisos = [];
   const encartes = prepararOfertas(payload, BEZERRA_M, { onlyNewest: false }, (aviso) => avisos.push(aviso));
 
@@ -81,8 +90,9 @@ test("prepararOfertas mantém apenas campanhas do Bezerra M, ordenadas e com tod
       vigencia: { de: "2026-08-21", ate: "2026-08-27" },
     },
   ]);
-  assert.equal(avisos.length, 1);
-  assert.match(avisos[0], /704.*sem imagens.*ignorado/i);
+  assert.equal(avisos.length, 2);
+  assert.ok(avisos.some((aviso) => /704.*sem imagens.*ignorado/i.test(aviso)));
+  assert.ok(avisos.some((aviso) => /ID inválido.*\.\.\/\.\.\/fora.*ignorada/i.test(aviso)));
 });
 
 test("prepararOfertas escolhe a primeira campanha ordenada para --only-newest", () => {

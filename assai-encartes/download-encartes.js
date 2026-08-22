@@ -46,6 +46,11 @@ function prepararOfertas(payload, lojaPagina, args = {}, avisar = console.warn) 
     .sort((a, b) => Number(b.destaque || 0) - Number(a.destaque || 0));
 
   const encartes = ofertas.flatMap((oferta) => {
+    if (!Number.isSafeInteger(oferta.id) || oferta.id <= 0) {
+      avisar(`  [aviso] Oferta com ID inválido ${JSON.stringify(oferta.id)} - ignorada.`);
+      return [];
+    }
+
     const urls = Array.isArray(oferta.images)
       ? oferta.images.map((imagem) => imagem?.url).filter(Boolean)
       : [];
@@ -123,7 +128,7 @@ Saída padrão:
   <base>/Assai/DD-Mês/JPG/<slug>-pagina-NN.jpg
   <base>/Assai/DD-Mês/manifest.json
 
-Requer: npm install playwright (na pasta da ferramenta)
+Requer: cd assai-encartes && npm install && npx playwright install chromium
 `;
 }
 

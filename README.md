@@ -25,12 +25,12 @@ o agente.
 | Skill | Mercado | Como baixa | Requer | Flags extras |
 |---|---|---|---|---|
 | ☄️ [`cometa-encartes`](./cometa-encartes) | Supermercado Cometa | API do site, PDF rasterizado | poppler | `--dpi` |
-| 🛍️ [`saoluiz-encartes`](./saoluiz-encartes) | Mercadinhos São Luiz | Playwright, imagens prontas | `npm install` | |
-| 💰 [`superdopovo-encartes`](./superdopovo-encartes) | Super do Povo | Playwright, PDF ou imagens | poppler + `npm install` | `--dpi` `--all` |
+| 🛍️ [`saoluiz-encartes`](./saoluiz-encartes) | Mercadinhos São Luiz | Playwright, imagens prontas | `npm install` + Chromium | |
+| 💰 [`superdopovo-encartes`](./superdopovo-encartes) | Super do Povo | Playwright, PDF ou imagens | poppler + `npm install` + Chromium | `--dpi` `--all` |
 | 🧺 [`mercadao-encartes`](./mercadao-encartes) | Mercadão São Luiz | HTML do site, imagens originais | nada | `--dry-run` |
 | 🐂 [`atacadao-encartes`](./atacadao-encartes) | Atacadão | HTML do site, PDF rasterizado | poppler | `--dpi` `--loja` |
-| 🏪 [`guara-encartes`](./guara-encartes) | Supermercado Guará | Playwright, imagens prontas | `npm install` | |
-| 🛒 [`assai-encartes`](./assai-encartes) | Assaí Bezerra M | Playwright, imagens prontas | `npm install` | |
+| 🏪 [`guara-encartes`](./guara-encartes) | Supermercado Guará | Playwright, imagens prontas | `npm install` + Chromium | |
+| 🛒 [`assai-encartes`](./assai-encartes) | Assaí Bezerra M | Playwright, imagens prontas | `npm install` + Chromium | |
 | 🚀 [`todos-encartes`](./todos-encartes) | Todos os mercados de uma vez | dispara as skills acima | conforme cada rede | `--dpi` `--all` |
 
 Todas aceitam `--base`, `--only-newest` e `--sem-reuso`. O Mercadão não tem
@@ -49,7 +49,9 @@ for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes
 done
 
 # dependências das skills que usam Playwright
-for s in saoluiz-encartes superdopovo-encartes guara-encartes assai-encartes; do (cd $s && npm install); done
+for s in saoluiz-encartes superdopovo-encartes guara-encartes assai-encartes; do
+  (cd "$s" && npm install && npx playwright install chromium)
+done
 ```
 
 Ajuste o destino dos symlinks conforme seu agente: `~/.claude/skills`
