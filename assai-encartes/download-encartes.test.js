@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { prepararOfertas } = require("./download-encartes");
+const { descobrir, prepararOfertas } = require("./download-encartes");
 
 const BEZERRA_M = { eid: "6", nid: "172" };
 const URL_CDN = "https://d2q57q7k4hzryv.cloudfront.net/assai";
@@ -89,4 +89,32 @@ test("prepararOfertas escolhe a primeira campanha ordenada para --only-newest", 
   const encartes = prepararOfertas(payload, BEZERRA_M, { onlyNewest: true }, () => {});
 
   assert.deepEqual(encartes.map((encarte) => encarte.slug), ["701-22-08-a-28-08"]);
+});
+
+test("descobrir abre contexto Chrome comum antes de requisitar ofertas", async () => {
+  let opcoesContexto;
+  let navegadorFechado = false;
+  const pagina = {
+    waitForResponse: async () => ({ json: async () => ({ lojas: [
+      { eid: "6", nid: "172", name: "Assaí Bezerra M" },
+    ], ofertas: [] }) }),
+    goto: async () => {},
+    locator: () => ({ evaluate: async () => BEZERRA_M }),
+  };
+  const navegador = {
+    newContext: async (opcoes) => {
+      opcoesContexto = opcoes;
+      return { newPage: async () => pagina };
+    },
+    close: async () => { navegadorFechado = true; },
+  };
+  assert.deepEqual(await descobrir({}, { chromium: { launch: async () => navegador } }), []);
+
+  assert.deepEqual(opcoesContexto, {
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    locale: "pt-BR",
+    timezoneId: "America/Fortaleza",
+    viewport: { width: 1440, height: 932 },
+  });
+  assert.equal(navegadorFechado, true);
 });

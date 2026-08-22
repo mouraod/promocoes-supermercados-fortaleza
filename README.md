@@ -102,7 +102,7 @@ flowchart LR
 - `lib/redes.js` registra script, flags e dependências de cada rede
 - mercado novo = adapter `descobrir()` + entrada no registry, sem tocar no
   resto
-- `node --test` roda os 18 testes sem rede e sem poppler
+- `node --test` roda os 20 testes sem rede e sem poppler
 
 ## Licença
 

@@ -55,7 +55,7 @@ Não existe `--output` aqui — ele apontaria as sete redes pra mesma pasta, sob
 ## Comportamento ao acionar
 
 1. Executar o script direto — sem perguntas desnecessárias
-2. Deixar a saída de cada rede rolar no terminal (é o `stdio: inherit` dos cinco scripts filhos)
+2. Deixar a saída de cada rede rolar no terminal (é o `stdio: inherit` dos sete scripts filhos)
 3. No final, mostrar o resumo consolidado
 4. Se alguma rede faltar dependência (poppler ou Playwright), a pré-checagem já mostra o comando exato — rodar e tentar de novo
 5. Se uma rede falhar em tempo de execução (rede fora do ar, etc.), as outras continuam; reportar a falha exatamente como aparece no resumo
@@ -73,7 +73,7 @@ Nunca usar tachado (~~R$ X~~). Sempre o formato "de ... por".
 
 ### Estrutura da resposta
 
-Organizar por categoria com cabeçalho em negrito. Dentro de cada categoria, ordenar do maior pro menor desconto e indicar a rede de cada item (já que agora há seis fontes). Incluir só itens com desconto relevante (acima de 15% ou preço muito bom). Exemplo:
+Organizar por categoria com cabeçalho em negrito. Dentro de cada categoria, ordenar do maior pro menor desconto e indicar a rede de cada item (já que agora há sete fontes). Incluir só itens com desconto relevante (acima de 15% ou preço muito bom). Exemplo:
 
 **Açougue**
 - Picanha Bovina Maturatta Congelada Peça: de R$ 107,90 por **R$ 84,90/kg** (21% off) — São Luiz

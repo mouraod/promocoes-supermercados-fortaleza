@@ -8,6 +8,12 @@ const { baixarEncartes, parsearArgs } = require("../lib/pipeline");
 const OFERTAS_URL = "https://www.assai.com.br/ofertas/ceara/assai-bezerra-m-fortaleza";
 const CAMINHO_PAYLOAD = "/sites/default/files/static/ofertas_assai.json";
 const HOST_IMAGENS = "d2q57q7k4hzryv.cloudfront.net";
+const CONTEXTO_CHROME = {
+  userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+  locale: "pt-BR",
+  timezoneId: "America/Fortaleza",
+  viewport: { width: 1440, height: 932 },
+};
 
 function normalizarData(data) {
   const [dia, mes, ano] = String(data ?? "").split("/");
@@ -67,11 +73,11 @@ function prepararOfertas(payload, lojaPagina, args = {}, avisar = console.warn) 
   return args.onlyNewest ? encartes.slice(0, 1) : encartes;
 }
 
-async function buscarDados() {
-  const { chromium } = require("playwright");
+async function buscarDados({ chromium } = require("playwright")) {
   const browser = await chromium.launch({ headless: true });
   try {
-    const page = await browser.newPage();
+    const contexto = await browser.newContext(CONTEXTO_CHROME);
+    const page = await contexto.newPage();
     const respostaPayload = page.waitForResponse(
       (resposta) => resposta.url().includes(CAMINHO_PAYLOAD),
       { timeout: 30000 }
@@ -93,8 +99,8 @@ async function buscarDados() {
   }
 }
 
-async function descobrir(args) {
-  const { payload, lojaPagina } = await buscarDados();
+async function descobrir(args, deps) {
+  const { payload, lojaPagina } = await buscarDados(deps);
   return prepararOfertas(payload, lojaPagina, args);
 }
 
