@@ -93,11 +93,26 @@ test("prepararOfertas escolhe a primeira campanha ordenada para --only-newest", 
 
 test("descobrir abre contexto Chrome comum antes de requisitar ofertas", async () => {
   let opcoesContexto;
+  let timeoutResposta;
   let navegadorFechado = false;
-  const pagina = {
-    waitForResponse: async () => ({ json: async () => ({ lojas: [
+  const respostaHtml = {
+    url: () => "https://www.assai.com.br/sites/default/files/static/ofertas_assai.json",
+    headers: () => ({ "content-type": "text/html; charset=utf-8" }),
+  };
+  const respostaJson = {
+    url: () => "https://www.assai.com.br/sites/default/files/static/ofertas_assai.json",
+    headers: () => ({ "content-type": "application/json; charset=utf-8" }),
+    json: async () => ({ lojas: [
       { eid: "6", nid: "172", name: "Assaí Bezerra M" },
-    ], ofertas: [] }) }),
+    ], ofertas: [] }),
+  };
+  const pagina = {
+    waitForResponse: async (predicado, opcoes) => {
+      timeoutResposta = opcoes.timeout;
+      assert.equal(predicado(respostaHtml), false);
+      assert.equal(predicado(respostaJson), true);
+      return respostaJson;
+    },
     goto: async () => {},
     locator: () => ({ evaluate: async () => BEZERRA_M }),
   };
@@ -116,5 +131,6 @@ test("descobrir abre contexto Chrome comum antes de requisitar ofertas", async (
     timezoneId: "America/Fortaleza",
     viewport: { width: 1440, height: 932 },
   });
+  assert.equal(timeoutResposta, 60000);
   assert.equal(navegadorFechado, true);
 });

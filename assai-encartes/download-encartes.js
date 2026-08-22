@@ -79,8 +79,10 @@ async function buscarDados({ chromium } = require("playwright")) {
     const contexto = await browser.newContext(CONTEXTO_CHROME);
     const page = await contexto.newPage();
     const respostaPayload = page.waitForResponse(
-      (resposta) => resposta.url().includes(CAMINHO_PAYLOAD),
-      { timeout: 30000 }
+      (resposta) =>
+        resposta.url().includes(CAMINHO_PAYLOAD) &&
+        resposta.headers()["content-type"]?.includes("application/json"),
+      { timeout: 60000 }
     );
 
     await page.goto(OFERTAS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
