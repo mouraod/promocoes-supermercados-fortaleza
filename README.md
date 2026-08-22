@@ -31,6 +31,7 @@ o agente.
 | 🐂 [`atacadao-encartes`](./atacadao-encartes) | Atacadão | HTML do site, PDF rasterizado | poppler | `--dpi` `--loja` |
 | 🏪 [`guara-encartes`](./guara-encartes) | Supermercado Guará | Playwright, imagens prontas | `npm install` + Chromium | |
 | 🛒 [`assai-encartes`](./assai-encartes) | Assaí Bezerra M | Playwright, imagens prontas | `npm install` + Chromium | |
+| 🐔 [`frangolandia-encartes`](./frangolandia-encartes) | Frangolandia | HTML do site, imagens da galeria | nada | |
 | 🚀 [`todos-encartes`](./todos-encartes) | Todos os mercados de uma vez | dispara as skills acima | conforme cada rede | `--dpi` `--all` |
 
 Todas aceitam `--base`, `--only-newest` e `--sem-reuso`. O Mercadão não tem
@@ -44,7 +45,7 @@ git clone https://github.com/mouraod/promocoes-supermercados-fortaleza.git ~/Dev
 cd ~/Developer/promocoes-supermercados-fortaleza
 
 # liga as 8 skills ao seu agente (exemplo com Claude Code)
-for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes atacadao-encartes guara-encartes assai-encartes todos-encartes; do
+for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes atacadao-encartes guara-encartes assai-encartes frangolandia-encartes todos-encartes; do
   ln -sfn "$(pwd)/$s" ~/.claude/skills/$s
 done
 
