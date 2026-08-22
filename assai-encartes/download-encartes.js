@@ -46,7 +46,8 @@ function prepararOfertas(payload, lojaPagina, args = {}, avisar = console.warn) 
     .sort((a, b) => Number(b.destaque || 0) - Number(a.destaque || 0));
 
   const encartes = ofertas.flatMap((oferta) => {
-    if (!Number.isSafeInteger(oferta.id) || oferta.id <= 0) {
+    const id = Number(oferta.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
       avisar(`  [aviso] Oferta com ID inválido ${JSON.stringify(oferta.id)} - ignorada.`);
       return [];
     }
@@ -55,7 +56,7 @@ function prepararOfertas(payload, lojaPagina, args = {}, avisar = console.warn) 
       ? oferta.images.map((imagem) => imagem?.url).filter(Boolean)
       : [];
     if (urls.length === 0) {
-      avisar(`  [aviso] Encarte ${oferta.id} (${oferta.title}) sem imagens - ignorado.`);
+      avisar(`  [aviso] Encarte ${id} (${oferta.title}) sem imagens - ignorado.`);
       return [];
     }
 
@@ -64,10 +65,10 @@ function prepararOfertas(payload, lojaPagina, args = {}, avisar = console.warn) 
       ate: normalizarData(oferta.end_date),
     };
     return [{
-      slug: `${oferta.id}-${vigenciaSlugCompleta(vigencia)}`,
+      slug: `${id}-${vigenciaSlugCompleta(vigencia)}`,
       paginas: urls.map((url) => ({ url })),
       meta: {
-        id: oferta.id,
+        id,
         titulo: oferta.title,
         vigencia,
         loja: { eid: loja.eid, nid: loja.nid, nome: loja.name },
