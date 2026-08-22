@@ -1,0 +1,4 @@
+interface:
+  display_name: "Assaí Encartes"
+  short_description: "Baixa encartes do Assaí Bezerra M"
+  default_prompt: "Use $assai-encartes para baixar os encartes atuais do Assaí Bezerra M."

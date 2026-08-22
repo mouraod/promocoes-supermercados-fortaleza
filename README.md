@@ -30,6 +30,7 @@ o agente.
 | 🧺 [`mercadao-encartes`](./mercadao-encartes) | Mercadão São Luiz | HTML do site, imagens originais | nada | `--dry-run` |
 | 🐂 [`atacadao-encartes`](./atacadao-encartes) | Atacadão | HTML do site, PDF rasterizado | poppler | `--dpi` `--loja` |
 | 🏪 [`guara-encartes`](./guara-encartes) | Supermercado Guará | Playwright, imagens prontas | `npm install` | |
+| 🛒 [`assai-encartes`](./assai-encartes) | Assaí Bezerra M | Playwright, imagens prontas | `npm install` | |
 | 🚀 [`todos-encartes`](./todos-encartes) | Todos os mercados de uma vez | dispara as skills acima | conforme cada rede | `--dpi` `--all` |
 
 Todas aceitam `--base`, `--only-newest` e `--sem-reuso`. O Mercadão não tem
@@ -42,13 +43,13 @@ Todas aceitam `--base`, `--only-newest` e `--sem-reuso`. O Mercadão não tem
 git clone https://github.com/mouraod/promocoes-supermercados-fortaleza.git ~/Developer/promocoes-supermercados-fortaleza
 cd ~/Developer/promocoes-supermercados-fortaleza
 
-# liga as 7 skills ao seu agente (exemplo com Claude Code)
-for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes atacadao-encartes guara-encartes todos-encartes; do
+# liga as 8 skills ao seu agente (exemplo com Claude Code)
+for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes atacadao-encartes guara-encartes assai-encartes todos-encartes; do
   ln -sfn "$(pwd)/$s" ~/.claude/skills/$s
 done
 
 # dependências das skills que usam Playwright
-for s in saoluiz-encartes superdopovo-encartes guara-encartes; do (cd $s && npm install); done
+for s in saoluiz-encartes superdopovo-encartes guara-encartes assai-encartes; do (cd $s && npm install); done
 ```
 
 Ajuste o destino dos symlinks conforme seu agente: `~/.claude/skills`
@@ -92,7 +93,7 @@ flowchart LR
   C["☄️ cometa"] --> P["lib/pipeline.js<br>download · rasterização ·<br>reuso · manifest"]
   S["🛍️ saoluiz"] --> P
   M["🧺 mercadao"] --> P
-  X["... 4 outras redes"] --> P
+  X["... 5 outras redes"] --> P
   P --> O["~/Downloads/Encartes/&lt;Rede&gt;/DD-Mês/<br>JPG · PDF · manifest.json"]
 ```
 

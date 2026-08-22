@@ -1,14 +1,14 @@
 ---
 name: todos-encartes
 description: >
-  Skill guarda-chuva de encartes e ofertas dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão e Guará): baixa de uma vez os encartes das seis redes, disparando as seis skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes, mercadao-encartes, superdopovo-encartes, atacadao-encartes ou guara-encartes) em vez desta.
+  Skill guarda-chuva de encartes e ofertas dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão, Guará e Assaí): baixa de uma vez os encartes das sete redes, disparando as sete skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes, mercadao-encartes, superdopovo-encartes, atacadao-encartes, guara-encartes ou assai-encartes) em vez desta.
 ---
 
 # Todos os Encartes (skill mãe)
 
-Roda `cometa-encartes`, `saoluiz-encartes`, `mercadao-encartes`, `superdopovo-encartes`, `atacadao-encartes` e `guara-encartes` em sequência, sem precisar disparar uma por uma. Não substitui as skills individuais — elas continuam funcionando isoladas, e é o que usar quando o pedido for de uma rede só.
+Roda `cometa-encartes`, `saoluiz-encartes`, `mercadao-encartes`, `superdopovo-encartes`, `atacadao-encartes`, `guara-encartes` e `assai-encartes` em sequência, sem precisar disparar uma por uma. Não substitui as skills individuais, elas continuam funcionando isoladas, e é o que usar quando o pedido for de uma rede só.
 
-Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (todas as seis redes).
+Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (todas as sete redes).
 
 ## Comando padrão
 
@@ -20,8 +20,8 @@ Saída: `~/Downloads/Encartes/<Rede>/DD-Mês/`, uma pasta por rede, formato idê
 
 ## Como funciona
 
-1. Pré-checagem: confere `pdfinfo`/`pdftoppm` (poppler) e o `node_modules/playwright` de São Luiz, Super do Povo e Guará. Falhando algo, para ali, sem baixar nada, e mostra o comando exato pra corrigir.
-2. Roda `cometa-encartes` → `saoluiz-encartes` → `mercadao-encartes` → `superdopovo-encartes` → `atacadao-encartes` → `guara-encartes`, um de cada vez (evita dois navegadores headless simultâneos).
+1. Pré-checagem: confere `pdfinfo`/`pdftoppm` (poppler) e o `node_modules/playwright` de São Luiz, Super do Povo, Guará e Assaí. Falhando algo, para ali, sem baixar nada, e mostra o comando exato pra corrigir.
+2. Roda `cometa-encartes` → `saoluiz-encartes` → `mercadao-encartes` → `superdopovo-encartes` → `atacadao-encartes` → `guara-encartes` → `assai-encartes`, um de cada vez (evita dois navegadores headless simultâneos).
 3. Rede que falha não trava as outras — o orquestrador segue pras próximas e reporta a falha no resumo final.
 4. Ao final, imprime um resumo consolidado (encartes, páginas, novas vs. reaproveitadas, por rede).
 
@@ -48,7 +48,9 @@ O Mercadão aceita `--base` e `--sem-reuso`: o orquestrador não repassa pra ele
 
 O Guará aceita `--base`, `--only-newest` e `--sem-reuso`, mas não `--dpi` nem `--all` (sem rasterização de PDF e sem filtro de vigência).
 
-Não existe `--output` aqui — ele apontaria as seis redes pra mesma pasta, sobrescrevendo uma a outra. Pra isso, rode a skill da rede específica.
+O Assaí aceita `--base`, `--only-newest` e `--sem-reuso`, mas não `--dpi` nem `--all` (usa imagens diretas e a ordem de destaque da página do Bezerra M).
+
+Não existe `--output` aqui — ele apontaria as sete redes pra mesma pasta, sobrescrevendo uma a outra. Pra isso, rode a skill da rede específica.
 
 ## Comportamento ao acionar
 
