@@ -99,6 +99,10 @@ test("descobrir abre contexto Chrome comum antes de requisitar ofertas", async (
     url: () => "https://www.assai.com.br/sites/default/files/static/ofertas_assai.json",
     headers: () => ({ "content-type": "text/html; charset=utf-8" }),
   };
+  const respostaJsonp = {
+    url: () => "https://www.assai.com.br/sites/default/files/static/ofertas_assai.json",
+    headers: () => ({ "content-type": "application/jsonp" }),
+  };
   const respostaJson = {
     url: () => "https://www.assai.com.br/sites/default/files/static/ofertas_assai.json",
     headers: () => ({ "content-type": "application/json; charset=utf-8" }),
@@ -110,6 +114,7 @@ test("descobrir abre contexto Chrome comum antes de requisitar ofertas", async (
     waitForResponse: async (predicado, opcoes) => {
       timeoutResposta = opcoes.timeout;
       assert.equal(predicado(respostaHtml), false);
+      assert.equal(predicado(respostaJsonp), false);
       assert.equal(predicado(respostaJson), true);
       return respostaJson;
     },

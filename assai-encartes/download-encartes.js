@@ -78,12 +78,13 @@ async function buscarDados({ chromium } = require("playwright")) {
   try {
     const contexto = await browser.newContext(CONTEXTO_CHROME);
     const page = await contexto.newPage();
-    const respostaPayload = page.waitForResponse(
-      (resposta) =>
-        resposta.url().includes(CAMINHO_PAYLOAD) &&
-        resposta.headers()["content-type"]?.includes("application/json"),
-      { timeout: 60000 }
-    );
+    const respostaPayload = page.waitForResponse((resposta) => {
+      const tipoConteudo = resposta.headers()["content-type"]
+        ?.split(";", 1)[0]
+        .trim()
+        .toLowerCase();
+      return resposta.url().includes(CAMINHO_PAYLOAD) && tipoConteudo === "application/json";
+    }, { timeout: 60000 });
 
     await page.goto(OFERTAS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
     const lojaPagina = await page.locator(".bloco-ofertas-tabloide").evaluate((elemento) => ({
