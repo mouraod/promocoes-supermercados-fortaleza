@@ -54,9 +54,18 @@ async function lerManifestSeExistir(destino) {
 function rodarScript(scriptPath, args) {
   return new Promise((resolve) => {
     let erroSpawn = null;
-    const proc = spawn("node", [scriptPath, ...args], { stdio: "inherit" });
+    let saida = "";
+    const proc = spawn("node", [scriptPath, ...args], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    proc.stdout.setEncoding("utf8");
+    proc.stderr.setEncoding("utf8");
+    // Acumula a saída da rede para imprimir o bloco inteiro quando ela terminar;
+    // com stdio: "inherit" as redes em paralelo intercalariam as linhas.
+    proc.stdout.on("data", (chunk) => { saida += chunk; });
+    proc.stderr.on("data", (chunk) => { saida += chunk; });
     proc.on("error", (err) => { erroSpawn = err; });
-    proc.on("close", (code) => resolve({ code, erroSpawn }));
+    proc.on("close", (code) => resolve({ code, erroSpawn, saida }));
   });
 }
 
@@ -122,6 +131,7 @@ function parseArgs(argv) {
     onlyNewest: false,
     semReuso: false,
     all: false,
+    paralelo: 1,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -131,6 +141,7 @@ function parseArgs(argv) {
     else if (arg === "--only-newest") args.onlyNewest = true;
     else if (arg === "--sem-reuso") args.semReuso = true;
     else if (arg === "--all") args.all = true;
+    else if (arg === "--paralelo") args.paralelo = Number(argv[++i]);
     else if (arg === "--output") {
       throw new Error(
         `--output não é suportado aqui: as ${REDES.length} redes se sobrescreveriam na mesma pasta.\n` +
@@ -149,7 +160,7 @@ function printHelp() {
 Uso:
   node todos-encartes/baixar-todos.js [opções]
 
-Dispara ${REDES.map((r) => r.nome).join(", ")} em sequência.
+Dispara ${REDES.map((r) => r.nome).join(", ")} em sequência (ou em paralelo com --paralelo N).
 
 Opções:
   --base          Pasta raiz. Padrão: ~/Downloads/Encartes
@@ -157,6 +168,7 @@ Opções:
   --only-newest   Baixa apenas o encarte mais recente de cada rede (não se aplica ao Mercadão)
   --sem-reuso     Não reaproveita páginas de rodadas anteriores
   --all           Inclui encartes já vencidos (só SuperDoPovo)
+  --paralelo      Nº de redes baixando ao mesmo tempo (máx. 3). Padrão: 1 (sequencial)
   --help          Exibe esta mensagem
 
 Saída padrão:
@@ -230,28 +242,44 @@ async function main() {
   const dateLabel = dateFolderName(new Date());
   console.log(`Rodada ${dateLabel}\n`);
 
-  const resultados = [];
+  // Pool simples: no máximo `limite` rodarScript em voo. Cap em 3 (8 Chromiums
+  // simultâneos seriam ~3GB e contenda de CPU).
+  const limite = Math.min(3, Number(args.paralelo) || 1);
+  const resultados = new Array(REDES.length); // preserva a ordem de REDES no resumo
+  let proxima = 0;
 
-  for (const rede of REDES) {
-    console.log(`─── ${rede.nome} ───`);
+  async function rodarRede(idx) {
+    const rede = REDES[idx];
     const scriptPath = path.join(ROOT, rede.pasta, rede.script);
-    const { code, erroSpawn } = await rodarScript(scriptPath, argsPorRede(rede, args));
-    console.log("");
+    const { code, erroSpawn, saida } = await rodarScript(scriptPath, argsPorRede(rede, args));
+    console.log(`─── ${rede.nome} ───\n${saida}\n`);
 
     if (erroSpawn || code !== 0) {
-      resultados.push({
+      resultados[idx] = {
         nome: rede.nome,
         ok: false,
         erro: erroSpawn ? erroSpawn.message : `saiu com código ${code}`,
-      });
-      continue;
+      };
+      return;
     }
 
     const redeDir = path.join(args.base, rede.nome);
     const pastaRecente = await pastaMaisRecente(redeDir);
     const manifest = pastaRecente ? await lerManifestSeExistir(path.join(redeDir, pastaRecente)) : null;
-    resultados.push({ nome: rede.nome, ok: true, manifest });
+    resultados[idx] = { nome: rede.nome, ok: true, manifest };
   }
+
+  async function pool() {
+    while (proxima < REDES.length) {
+      const idx = proxima;
+      proxima += 1;
+      await rodarRede(idx);
+    }
+  }
+
+  const rodadas = [];
+  for (let i = 0; i < limite; i += 1) rodadas.push(pool());
+  await Promise.all(rodadas);
 
   imprimirResumo(args.base, resultados);
 
