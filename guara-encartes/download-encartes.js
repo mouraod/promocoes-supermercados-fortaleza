@@ -45,24 +45,25 @@ function pageUrl(capaUrl, page) {
 
 async function fetchEncartesDoDOM() {
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  try {
+    const page = await browser.newPage({ userAgent: UA });
 
-  await page.goto(FOLHETOS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
-  await page.waitForSelector(".card-folheto img[src]", { state: "attached", timeout: 30000 });
+    await page.goto(FOLHETOS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.waitForSelector(".card-folheto img[src]", { state: "attached", timeout: 30000 });
 
-  const encartes = await page.evaluate(() => {
-    const cards = document.querySelectorAll(".card-folheto");
-    return Array.from(cards).map((card) => {
-      const titulo = card.querySelector(".titulo")?.textContent?.trim() || "";
-      const subtitulo = card.querySelector(".subtitulo")?.textContent?.trim() || "";
-      const img = card.querySelector(".imagem-capa img");
-      const capaUrl = img?.src || "";
-      return { titulo, subtitulo, capaUrl };
-    }).filter((e) => e.capaUrl);
-  });
-
-  await browser.close();
-  return encartes;
+    return await page.evaluate(() => {
+      const cards = document.querySelectorAll(".card-folheto");
+      return Array.from(cards).map((card) => {
+        const titulo = card.querySelector(".titulo")?.textContent?.trim() || "";
+        const subtitulo = card.querySelector(".subtitulo")?.textContent?.trim() || "";
+        const img = card.querySelector(".imagem-capa img");
+        const capaUrl = img?.src || "";
+        return { titulo, subtitulo, capaUrl };
+      }).filter((e) => e.capaUrl);
+    });
+  } finally {
+    await browser.close();
+  }
 }
 
 async function descobrir(args) {
