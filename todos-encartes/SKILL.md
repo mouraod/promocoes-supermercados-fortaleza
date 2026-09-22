@@ -1,14 +1,14 @@
 ---
 name: todos-encartes
 description: >
-  Skill guarda-chuva de encartes e ofertas dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão, Guará e Assaí): baixa de uma vez os encartes das sete redes, disparando as sete skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes, mercadao-encartes, superdopovo-encartes, atacadao-encartes, guara-encartes ou assai-encartes) em vez desta.
+  Skill guarda-chuva de encartes e ofertas dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão, Guará, Assaí, Frangolandia e Mix Mateus): baixa de uma vez os encartes das nove redes, disparando as nove skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes, mercadao-encartes, superdopovo-encartes, atacadao-encartes, guara-encartes, assai-encartes, frangolandia-encartes ou mateus-encartes) em vez desta.
 ---
 
 # Todos os Encartes (skill mãe)
 
-Roda `cometa-encartes`, `saoluiz-encartes`, `mercadao-encartes`, `superdopovo-encartes`, `atacadao-encartes`, `guara-encartes` e `assai-encartes` em sequência, sem precisar disparar uma por uma. Não substitui as skills individuais, elas continuam funcionando isoladas, e é o que usar quando o pedido for de uma rede só.
+Roda `cometa-encartes`, `saoluiz-encartes`, `mercadao-encartes`, `superdopovo-encartes`, `atacadao-encartes`, `guara-encartes`, `assai-encartes`, `frangolandia-encartes` e `mateus-encartes` em sequência, sem precisar disparar uma por uma. Não substitui as skills individuais, elas continuam funcionando isoladas, e é o que usar quando o pedido for de uma rede só.
 
-Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (todas as sete redes).
+Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (todas as nove redes).
 
 ## Comando padrão
 
@@ -21,7 +21,7 @@ Saída: `~/Downloads/Encartes/<Rede>/DD-Mês/`, uma pasta por rede, formato idê
 ## Como funciona
 
 1. Pré-checagem: confere `pdfinfo`/`pdftoppm` (poppler) e o `node_modules/playwright` de São Luiz, Super do Povo, Guará e Assaí. Falhando algo, para ali, sem baixar nada, e mostra o comando exato pra corrigir.
-2. Roda `cometa-encartes` → `saoluiz-encartes` → `mercadao-encartes` → `superdopovo-encartes` → `atacadao-encartes` → `guara-encartes` → `assai-encartes`, um de cada vez (evita dois navegadores headless simultâneos).
+2. Roda `cometa-encartes` → `saoluiz-encartes` → `mercadao-encartes` → `superdopovo-encartes` → `atacadao-encartes` → `guara-encartes` → `assai-encartes` → `frangolandia-encartes` → `mateus-encartes`, um de cada vez (evita dois navegadores headless simultâneos).
 3. Rede que falha não trava as outras — o orquestrador segue pras próximas e reporta a falha no resumo final.
 4. Ao final, imprime um resumo consolidado (encartes, páginas, novas vs. reaproveitadas, por rede).
 
@@ -42,7 +42,17 @@ node todos-encartes/baixar-todos.js --sem-reuso
 
 # Inclui encartes já vencidos (só afeta Super do Povo)
 node todos-encartes/baixar-todos.js --all
+
+# Resultado estruturado (última linha do stdout), consumido pelo pipeline do site
+node todos-encartes/baixar-todos.js --json
 ```
+
+Com `--json`, a última linha é
+`{"redes":[{"rede":"cometa","ok":true,"pasta_download":"...","erro":null}]}`.
+A pasta vem da própria execução de cada rede (linha `Destino:` do script
+individual), nunca de uma varredura da pasta mais recente. Rede que falha sai
+com `ok: false`, `pasta_download: null` e `erro`; o comando termina com código
+1, mas imprime o resultado completo de todas as redes.
 
 O Mercadão aceita `--base` e `--sem-reuso`: o orquestrador não repassa pra ele `--only-newest`, `--dpi` nem `--all`, porque o downloader dele não tem essas opções.
 

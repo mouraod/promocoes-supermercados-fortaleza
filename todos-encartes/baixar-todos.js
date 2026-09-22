@@ -21,27 +21,6 @@ function dateFolderName(date) {
   return `${d}-${MESES[date.getMonth()]}`;
 }
 
-async function pastaMaisRecente(redeDir) {
-  let entradas;
-  try {
-    entradas = await fs.readdir(redeDir, { withFileTypes: true });
-  } catch {
-    return null;
-  }
-
-  const pastas = entradas.filter((e) => e.isDirectory()).map((e) => e.name);
-  if (pastas.length === 0) return null;
-
-  const comStat = await Promise.all(
-    pastas.map(async (nome) => {
-      const stat = await fs.stat(path.join(redeDir, nome));
-      return { nome, mtime: stat.mtimeMs };
-    })
-  );
-  comStat.sort((a, b) => b.mtime - a.mtime);
-  return comStat[0].nome;
-}
-
 async function lerManifestSeExistir(destino) {
   try {
     const raw = await fs.readFile(path.join(destino, "manifest.json"), "utf8");
@@ -132,6 +111,7 @@ function parseArgs(argv) {
     semReuso: false,
     all: false,
     paralelo: 1,
+    json: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -142,6 +122,7 @@ function parseArgs(argv) {
     else if (arg === "--sem-reuso") args.semReuso = true;
     else if (arg === "--all") args.all = true;
     else if (arg === "--paralelo") args.paralelo = Number(argv[++i]);
+    else if (arg === "--json") args.json = true;
     else if (arg === "--output") {
       throw new Error(
         `--output não é suportado aqui: as ${REDES.length} redes se sobrescreveriam na mesma pasta.\n` +
@@ -169,10 +150,14 @@ Opções:
   --sem-reuso     Não reaproveita páginas de rodadas anteriores
   --all           Inclui encartes já vencidos (só SuperDoPovo)
   --paralelo      Nº de redes baixando ao mesmo tempo (máx. 3). Padrão: 1 (sequencial)
+  --json          Imprime, como última linha, o resultado estruturado da rodada
   --help          Exibe esta mensagem
 
 Saída padrão:
   <base>/<Rede>/DD-Mês/ (uma pasta por rede, formato idêntico ao das skills individuais)
+
+Com --json, a última linha é:
+  {"redes":[{"rede":"cometa","ok":true,"pasta_download":"...","erro":null}]}
 `);
 }
 
@@ -194,6 +179,29 @@ function argsPorRede(rede, args) {
 }
 
 // ─── resumo ───────────────────────────────────────────────────────────────────
+
+// A pasta da rodada é reportada pelo próprio script da rede (linha
+// "Destino: <caminho>"). Nunca inferimos por busca recursiva: o pai confia
+// apenas na pasta que esta execução realmente criou/localizou.
+function pastaDoResumo(saida) {
+  const m = /^Destino: (.+)$/m.exec(saida);
+  return m ? m[1].trim() : null;
+}
+
+function montarResultadoJson(resultados) {
+  return {
+    redes: resultados.map((r) => ({
+      rede: r.slug,
+      ok: Boolean(r.ok),
+      pasta_download: r.pasta_download ?? null,
+      erro: r.erro ?? null,
+    })),
+  };
+}
+
+function imprimirResumoJson(resultados) {
+  console.log(JSON.stringify(montarResultadoJson(resultados)));
+}
 
 function formatarContagem(manifest) {
   const paginasReaproveitadas = (manifest.encartes || [])
@@ -257,16 +265,30 @@ async function main() {
     if (erroSpawn || code !== 0) {
       resultados[idx] = {
         nome: rede.nome,
+        slug: rede.slug,
         ok: false,
+        pasta_download: null,
         erro: erroSpawn ? erroSpawn.message : `saiu com código ${code}`,
+        manifest: null,
       };
       return;
     }
 
-    const redeDir = path.join(args.base, rede.nome);
-    const pastaRecente = await pastaMaisRecente(redeDir);
-    const manifest = pastaRecente ? await lerManifestSeExistir(path.join(redeDir, pastaRecente)) : null;
-    resultados[idx] = { nome: rede.nome, ok: true, manifest };
+    const destino = pastaDoResumo(saida);
+    if (!destino) {
+      resultados[idx] = {
+        nome: rede.nome,
+        slug: rede.slug,
+        ok: false,
+        pasta_download: null,
+        erro: "não consegui identificar a pasta desta execução (linha Destino ausente)",
+        manifest: null,
+      };
+      return;
+    }
+
+    const manifest = await lerManifestSeExistir(destino);
+    resultados[idx] = { nome: rede.nome, slug: rede.slug, ok: true, pasta_download: destino, erro: null, manifest };
   }
 
   async function pool() {
@@ -283,11 +305,30 @@ async function main() {
 
   imprimirResumo(args.base, resultados);
 
+  if (args.json) imprimirResumoJson(resultados);
+
   const falhou = resultados.some((r) => !r.ok);
   process.exit(falhou ? 1 : 0);
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    const mensagem = error instanceof Error ? error.message : String(error);
+    console.error(mensagem);
+    // Mesmo abortando antes de baixar qualquer coisa (pré-checagem, args), o
+    // resultado estruturado sai completo para o pai não inventar a lista.
+    if (process.argv.includes("--json")) {
+      console.log(JSON.stringify({
+        redes: REDES.map((rede) => ({
+          rede: rede.slug,
+          ok: false,
+          pasta_download: null,
+          erro: mensagem,
+        })),
+      }));
+    }
+    process.exit(1);
+  });
+}
+
+module.exports = { montarResultadoJson, pastaDoResumo, REDES };
