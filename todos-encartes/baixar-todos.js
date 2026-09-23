@@ -146,7 +146,7 @@ Dispara ${REDES.map((r) => r.nome).join(", ")} em sequência (ou em paralelo com
 Opções:
   --base          Pasta raiz. Padrão: ~/Downloads/Encartes
   --dpi           Resolução de rasterização (Cometa, SuperDoPovo e Atacadão). Padrão: 200
-  --only-newest   Baixa apenas o encarte mais recente de cada rede (não se aplica ao Mercadão)
+  --only-newest   Baixa apenas o encarte mais recente de cada rede (não se aplica ao Mercadão nem ao Center Box)
   --sem-reuso     Não reaproveita páginas de rodadas anteriores
   --all           Inclui encartes já vencidos (só SuperDoPovo)
   --paralelo      Nº de redes baixando ao mesmo tempo (máx. 3). Padrão: 1 (sequencial)

@@ -33,11 +33,13 @@ o agente.
 | 🛒 [`assai-encartes`](./assai-encartes) | Assaí Bezerra M | Playwright, imagens prontas | `npm install` + Chromium | |
 | 🐔 [`frangolandia-encartes`](./frangolandia-encartes) | Frangolandia | HTML do site, imagens da galeria | nada | |
 | 🎯 [`mateus-encartes`](./mateus-encartes) | Mix Mateus | API JSON do site, PDF rasterizado | poppler | `--dpi` `--loja` |
+| 📦 [`centerbox-encartes`](./centerbox-encartes) | Center Box | HTML do site, imagens originais | nada | |
 | 🚀 [`todos-encartes`](./todos-encartes) | Todos os mercados de uma vez | dispara as skills acima | conforme cada rede | `--dpi` `--all` |
 
 Todas aceitam `--base`, `--only-newest` e `--sem-reuso`. O Mercadão não tem
-`--only-newest` (baixa tudo que encontrar) e o Atacadão usa a loja
-`fortaleza-aeroporto` por padrão.
+`--only-newest` (baixa tudo que encontrar), o Center Box também não (baixa só a
+seção vigente da página) e o Atacadão usa a loja `fortaleza-aeroporto` por
+padrão.
 
 ## Instalar
 
@@ -45,8 +47,8 @@ Todas aceitam `--base`, `--only-newest` e `--sem-reuso`. O Mercadão não tem
 git clone https://github.com/mouraod/promocoes-supermercados-fortaleza.git ~/Developer/promocoes-supermercados-fortaleza
 cd ~/Developer/promocoes-supermercados-fortaleza
 
-# liga as 9 skills ao seu agente (exemplo com Claude Code)
-for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes atacadao-encartes guara-encartes assai-encartes frangolandia-encartes mateus-encartes todos-encartes; do
+# liga as 10 skills ao seu agente (exemplo com Claude Code)
+for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes atacadao-encartes guara-encartes assai-encartes frangolandia-encartes mateus-encartes centerbox-encartes todos-encartes; do
   ln -sfn "$(pwd)/$s" ~/.claude/skills/$s
 done
 
@@ -97,7 +99,7 @@ flowchart LR
   C["☄️ cometa"] --> P["lib/pipeline.js<br>download · rasterização ·<br>reuso · manifest"]
   S["🛍️ saoluiz"] --> P
   M["🧺 mercadao"] --> P
-  X["... 6 outras redes"] --> P
+  X["... 7 outras redes"] --> P
   P --> O["~/Downloads/Encartes/&lt;Rede&gt;/DD-Mês/<br>JPG · PDF · manifest.json"]
 ```
 
@@ -106,7 +108,7 @@ flowchart LR
 - `lib/redes.js` registra script, flags e dependências de cada rede
 - mercado novo = adapter `descobrir()` + entrada no registry, sem tocar no
   resto
-- `node --test` roda os 26 testes sem rede e sem poppler
+- `node --test` roda a suíte de testes sem rede e sem poppler
 
 ## Licença
 

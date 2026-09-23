@@ -1,14 +1,14 @@
 ---
 name: todos-encartes
 description: >
-  Skill guarda-chuva de encartes e ofertas dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão, Guará, Assaí, Frangolandia e Mix Mateus): baixa de uma vez os encartes das nove redes, disparando as nove skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes, mercadao-encartes, superdopovo-encartes, atacadao-encartes, guara-encartes, assai-encartes, frangolandia-encartes ou mateus-encartes) em vez desta.
+  Skill guarda-chuva de encartes e ofertas dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão, Guará, Assaí, Frangolandia, Mix Mateus e Center Box): baixa de uma vez os encartes das dez redes, disparando as dez skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes, mercadao-encartes, superdopovo-encartes, atacadao-encartes, guara-encartes, assai-encartes, frangolandia-encartes, mateus-encartes ou centerbox-encartes) em vez desta.
 ---
 
 # Todos os Encartes (skill mãe)
 
-Roda `cometa-encartes`, `saoluiz-encartes`, `mercadao-encartes`, `superdopovo-encartes`, `atacadao-encartes`, `guara-encartes`, `assai-encartes`, `frangolandia-encartes` e `mateus-encartes` em sequência, sem precisar disparar uma por uma. Não substitui as skills individuais, elas continuam funcionando isoladas, e é o que usar quando o pedido for de uma rede só.
+Roda `cometa-encartes`, `saoluiz-encartes`, `mercadao-encartes`, `superdopovo-encartes`, `atacadao-encartes`, `guara-encartes`, `assai-encartes`, `frangolandia-encartes`, `mateus-encartes` e `centerbox-encartes` em sequência, sem precisar disparar uma por uma. Não substitui as skills individuais, elas continuam funcionando isoladas, e é o que usar quando o pedido for de uma rede só.
 
-Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (todas as nove redes).
+Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (todas as dez redes).
 
 ## Comando padrão
 
@@ -21,7 +21,7 @@ Saída: `~/Downloads/Encartes/<Rede>/DD-Mês/`, uma pasta por rede, formato idê
 ## Como funciona
 
 1. Pré-checagem: confere `pdfinfo`/`pdftoppm` (poppler) e o `node_modules/playwright` de São Luiz, Super do Povo, Guará e Assaí. Falhando algo, para ali, sem baixar nada, e mostra o comando exato pra corrigir.
-2. Roda `cometa-encartes` → `saoluiz-encartes` → `mercadao-encartes` → `superdopovo-encartes` → `atacadao-encartes` → `guara-encartes` → `assai-encartes` → `frangolandia-encartes` → `mateus-encartes`, um de cada vez (evita dois navegadores headless simultâneos).
+2. Roda `cometa-encartes` → `saoluiz-encartes` → `mercadao-encartes` → `superdopovo-encartes` → `atacadao-encartes` → `guara-encartes` → `assai-encartes` → `frangolandia-encartes` → `mateus-encartes` → `centerbox-encartes`, um de cada vez (evita dois navegadores headless simultâneos).
 3. Rede que falha não trava as outras — o orquestrador segue pras próximas e reporta a falha no resumo final.
 4. Ao final, imprime um resumo consolidado (encartes, páginas, novas vs. reaproveitadas, por rede).
 
@@ -60,12 +60,14 @@ O Guará aceita `--base`, `--only-newest` e `--sem-reuso`, mas não `--dpi` nem 
 
 O Assaí aceita `--base`, `--only-newest` e `--sem-reuso`, mas não `--dpi` nem `--all` (usa imagens diretas e a ordem de destaque da página do Bezerra M).
 
-Não existe `--output` aqui — ele apontaria as sete redes pra mesma pasta, sobrescrevendo uma a outra. Pra isso, rode a skill da rede específica.
+O Center Box aceita `--base` e `--sem-reuso`, mas não `--dpi`, `--only-newest` nem `--all` (usa imagens diretas da seção "Ofertas da semana", sem PDF e sem vigência em campo parseável).
+
+Não existe `--output` aqui — ele apontaria as dez redes pra mesma pasta, sobrescrevendo uma a outra. Pra isso, rode a skill da rede específica.
 
 ## Comportamento ao acionar
 
 1. Executar o script direto — sem perguntas desnecessárias
-2. Deixar a saída de cada rede rolar no terminal (é o `stdio: inherit` dos sete scripts filhos)
+2. Deixar a saída de cada rede rolar no terminal (é o `stdio: inherit` dos scripts filhos)
 3. No final, mostrar o resumo consolidado
 4. Se alguma rede faltar dependência (poppler ou Playwright), a pré-checagem já mostra o comando exato — rodar e tentar de novo
 5. Se uma rede falhar em tempo de execução (rede fora do ar, etc.), as outras continuam; reportar a falha exatamente como aparece no resumo
@@ -83,7 +85,7 @@ Nunca usar tachado (~~R$ X~~). Sempre o formato "de ... por".
 
 ### Estrutura da resposta
 
-Organizar por categoria com cabeçalho em negrito. Dentro de cada categoria, ordenar do maior pro menor desconto e indicar a rede de cada item (já que agora há sete fontes). Incluir só itens com desconto relevante (acima de 15% ou preço muito bom). Exemplo:
+Organizar por categoria com cabeçalho em negrito. Dentro de cada categoria, ordenar do maior pro menor desconto e indicar a rede de cada item (já que agora há dez fontes). Incluir só itens com desconto relevante (acima de 15% ou preço muito bom). Exemplo:
 
 **Açougue**
 - Picanha Bovina Maturatta Congelada Peça: de R$ 107,90 por **R$ 84,90/kg** (21% off) — São Luiz
