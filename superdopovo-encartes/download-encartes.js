@@ -33,6 +33,18 @@ async function fetchBookletsPayload() {
   return payload;
 }
 
+function folhasDoEncarte(encarte) {
+  const sheets = Array.isArray(encarte?.sheets)
+    ? encarte.sheets.map((sheet) => sheet?.link).filter(Boolean)
+    : [];
+  if (sheets.length > 0) return sheets;
+
+  const links = Array.isArray(encarte?.links) ? encarte.links.filter(Boolean) : [];
+  if (links.length > 0) return links;
+
+  return encarte?.link ? [encarte.link] : [];
+}
+
 async function descobrir(args) {
   const payload = await fetchBookletsPayload();
   if (!Array.isArray(payload)) return [];
@@ -60,18 +72,16 @@ async function descobrir(args) {
       }];
     }
 
-    const sheets = Array.isArray(e.sheets) && e.sheets.length > 0
-      ? e.sheets.map((s) => s.link)
-      : (Array.isArray(e.links) ? e.links : []);
+    const folhas = folhasDoEncarte(e);
 
-    if (sheets.length === 0) {
+    if (folhas.length === 0) {
       console.warn(`  [aviso] Encarte ${e.id} (${e.name}) sem PDF e sem páginas — ignorado.`);
       return [];
     }
 
     return [{
       slug,
-      paginas: sheets.map((url) => ({ url })),
+      paginas: folhas.map((url) => ({ url })),
       meta: { id: e.id, name: e.name, vigencia, fonte: "sheets" },
     }];
   });
@@ -111,4 +121,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { descobrir };
+module.exports = { descobrir, folhasDoEncarte };
