@@ -34,12 +34,14 @@ o agente.
 | 🐔 [`frangolandia-encartes`](./frangolandia-encartes) | Frangolandia | HTML do site, imagens da galeria | nada | |
 | 🎯 [`mateus-encartes`](./mateus-encartes) | Mix Mateus | API JSON do site, PDF rasterizado | poppler | `--dpi` `--loja` |
 | 📦 [`centerbox-encartes`](./centerbox-encartes) | Center Box | HTML do site, imagens originais | nada | |
-| 🚀 [`todos-encartes`](./todos-encartes) | Todos os mercados de uma vez | dispara as skills acima | conforme cada rede | `--dpi` `--all` |
+| 🛒 [`uniforca-encartes`](./uniforca-encartes) | Rede Uniforça | HTML WordPress, PDFs rasterizados e imagens diretas | poppler | `--dpi` |
+| 🚀 [`todos-encartes`](./todos-encartes) | Todos os mercados de uma vez | dispara as skills acima | conforme cada rede | `--dpi` `--all` `--dry-run` |
 
-Todas aceitam `--base`, `--only-newest` e `--sem-reuso`. O Mercadão não tem
-`--only-newest` (baixa tudo que encontrar), o Center Box também não (baixa só a
-seção vigente da página) e o Atacadão usa a loja `fortaleza-aeroporto` por
-padrão.
+Todas aceitam `--base` e `--sem-reuso`. Mercadão, Frangolandia, Mix Mateus,
+Center Box e Uniforça não aceitam `--only-newest`; cada downloader baixa todos
+os encartes vigentes que encontra. O Center Box limita-se à seção vigente da
+página. O Atacadão usa a loja `fortaleza-aeroporto` por padrão. A Uniforça
+aceita `--dpi` para configurar a rasterização dos PDFs.
 
 ## Instalar
 
@@ -47,8 +49,8 @@ padrão.
 git clone https://github.com/mouraod/promocoes-supermercados-fortaleza.git ~/Developer/promocoes-supermercados-fortaleza
 cd ~/Developer/promocoes-supermercados-fortaleza
 
-# liga as 10 skills ao seu agente (exemplo com Claude Code)
-for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes atacadao-encartes guara-encartes assai-encartes frangolandia-encartes mateus-encartes centerbox-encartes todos-encartes; do
+# liga as 11 skills de rede e a skill guarda-chuva (exemplo com Claude Code)
+for s in cometa-encartes saoluiz-encartes superdopovo-encartes mercadao-encartes atacadao-encartes guara-encartes assai-encartes frangolandia-encartes mateus-encartes centerbox-encartes uniforca-encartes todos-encartes; do
   ln -sfn "$(pwd)/$s" ~/.claude/skills/$s
 done
 
@@ -64,7 +66,7 @@ Duas dependências externas, só quando a skill precisa:
 
 - **Node 18 ou superior**, para todas (o `fetch` nativo)
 - **poppler** (`brew install poppler` no macOS), para as skills que
-  transformam PDF em imagem: Cometa, Super do Povo e Atacadão
+  transformam PDF em imagem: Cometa, Super do Povo, Atacadão, Mix Mateus e Uniforça
 
 ## Como usar
 
@@ -99,7 +101,7 @@ flowchart LR
   C["☄️ cometa"] --> P["lib/pipeline.js<br>download · rasterização ·<br>reuso · manifest"]
   S["🛍️ saoluiz"] --> P
   M["🧺 mercadao"] --> P
-  X["... 7 outras redes"] --> P
+  X["... 8 outras redes"] --> P
   P --> O["~/Downloads/Encartes/&lt;Rede&gt;/DD-Mês/<br>JPG · PDF · manifest.json"]
 ```
 

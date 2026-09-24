@@ -112,6 +112,7 @@ function parseArgs(argv) {
     all: false,
     paralelo: 1,
     json: false,
+    dryRun: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -123,6 +124,7 @@ function parseArgs(argv) {
     else if (arg === "--all") args.all = true;
     else if (arg === "--paralelo") args.paralelo = Number(argv[++i]);
     else if (arg === "--json") args.json = true;
+    else if (arg === "--dry-run") args.dryRun = true;
     else if (arg === "--output") {
       throw new Error(
         `--output não é suportado aqui: as ${REDES.length} redes se sobrescreveriam na mesma pasta.\n` +
@@ -145,12 +147,13 @@ Dispara ${REDES.map((r) => r.nome).join(", ")} em sequência (ou em paralelo com
 
 Opções:
   --base          Pasta raiz. Padrão: ~/Downloads/Encartes
-  --dpi           Resolução de rasterização (Cometa, SuperDoPovo e Atacadão). Padrão: 200
-  --only-newest   Baixa apenas o encarte mais recente de cada rede (não se aplica ao Mercadão nem ao Center Box)
+  --dpi           Resolução de rasterização (Cometa, SuperDoPovo, Atacadão, Mateus e Uniforça). Padrão: 200
+  --only-newest   Baixa apenas o encarte mais recente (não se aplica a Mercadão, Frangolandia, Mateus, Center Box nem Uniforça)
   --sem-reuso     Não reaproveita páginas de rodadas anteriores
   --all           Inclui encartes já vencidos (só SuperDoPovo)
   --paralelo      Nº de redes baixando ao mesmo tempo (máx. 3). Padrão: 1 (sequencial)
   --json          Imprime, como última linha, o resultado estruturado da rodada
+  --dry-run       Lista as redes e scripts sem executar downloads
   --help          Exibe esta mensagem
 
 Saída padrão:
@@ -244,6 +247,14 @@ function imprimirResumo(base, resultados) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+
+  if (args.dryRun) {
+    console.log("Dry-run: nenhum download será executado.");
+    for (const rede of REDES) {
+      console.log(`${rede.nome}: ${path.join(ROOT, rede.pasta, rede.script)}`);
+    }
+    return;
+  }
 
   await preChecagem();
 

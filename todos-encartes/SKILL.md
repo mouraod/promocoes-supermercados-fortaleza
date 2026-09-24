@@ -1,14 +1,14 @@
 ---
 name: todos-encartes
 description: >
-  Skill guarda-chuva de encartes e ofertas dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão, Guará, Assaí, Frangolandia, Mix Mateus e Center Box): baixa de uma vez os encartes das dez redes, disparando as dez skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes, mercadao-encartes, superdopovo-encartes, atacadao-encartes, guara-encartes, assai-encartes, frangolandia-encartes, mateus-encartes ou centerbox-encartes) em vez desta.
+  Skill guarda-chuva de encartes e ofertas dos supermercados de Fortaleza (Cometa, Mercadinhos São Luiz, Mercadão São Luiz, Super do Povo, Atacadão, Guará, Assaí, Frangolandia, Mix Mateus, Center Box e Uniforça): baixa de uma vez os encartes das onze redes, disparando as onze skills individuais em sequência. Use quando o usuário pedir "baixar todos os encartes", "encartes da semana", "atualizar encartes", "encartes de todas as redes" ou "encartes de todos os mercados". Para uma rede só, use a skill daquela rede (cometa-encartes, saoluiz-encartes, mercadao-encartes, superdopovo-encartes, atacadao-encartes, guara-encartes, assai-encartes, frangolandia-encartes, mateus-encartes, centerbox-encartes ou uniforca-encartes) em vez desta.
 ---
 
 # Todos os Encartes (skill mãe)
 
-Roda `cometa-encartes`, `saoluiz-encartes`, `mercadao-encartes`, `superdopovo-encartes`, `atacadao-encartes`, `guara-encartes`, `assai-encartes`, `frangolandia-encartes`, `mateus-encartes` e `centerbox-encartes` em sequência, sem precisar disparar uma por uma. Não substitui as skills individuais, elas continuam funcionando isoladas, e é o que usar quando o pedido for de uma rede só.
+Roda `cometa-encartes`, `saoluiz-encartes`, `mercadao-encartes`, `superdopovo-encartes`, `atacadao-encartes`, `guara-encartes`, `assai-encartes`, `frangolandia-encartes`, `mateus-encartes`, `centerbox-encartes` e `uniforca-encartes` em sequência, sem precisar disparar uma por uma. Não substitui as skills individuais, elas continuam funcionando isoladas, e é o que usar quando o pedido for de uma rede só.
 
-Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (todas as dez redes).
+Reaproveita automaticamente (via hardlink) páginas de encartes que já foram baixados em rodadas anteriores, então rodadas repetidas na mesma semana são rápidas (todas as onze redes).
 
 ## Comando padrão
 
@@ -21,7 +21,7 @@ Saída: `~/Downloads/Encartes/<Rede>/DD-Mês/`, uma pasta por rede, formato idê
 ## Como funciona
 
 1. Pré-checagem: confere `pdfinfo`/`pdftoppm` (poppler) e o `node_modules/playwright` de São Luiz, Super do Povo, Guará e Assaí. Falhando algo, para ali, sem baixar nada, e mostra o comando exato pra corrigir.
-2. Roda `cometa-encartes` → `saoluiz-encartes` → `mercadao-encartes` → `superdopovo-encartes` → `atacadao-encartes` → `guara-encartes` → `assai-encartes` → `frangolandia-encartes` → `mateus-encartes` → `centerbox-encartes`, um de cada vez (evita dois navegadores headless simultâneos).
+2. Roda `cometa-encartes` → `saoluiz-encartes` → `mercadao-encartes` → `superdopovo-encartes` → `atacadao-encartes` → `guara-encartes` → `assai-encartes` → `frangolandia-encartes` → `mateus-encartes` → `centerbox-encartes` → `uniforca-encartes`, um de cada vez (evita dois navegadores headless simultâneos).
 3. Rede que falha não trava as outras — o orquestrador segue pras próximas e reporta a falha no resumo final.
 4. Ao final, imprime um resumo consolidado (encartes, páginas, novas vs. reaproveitadas, por rede).
 
@@ -31,7 +31,7 @@ Saída: `~/Downloads/Encartes/<Rede>/DD-Mês/`, uma pasta por rede, formato idê
 # Pasta raiz alternativa (conterá <Rede>/DD-Mês/ de cada uma)
 node todos-encartes/baixar-todos.js --base /caminho/completo
 
-# Resolução de rasterização (Cometa, Super do Povo e Atacadão; São Luiz e Mercadão não rasterizam)
+# Resolução de rasterização (Cometa, Super do Povo, Atacadão, Mix Mateus e Uniforça)
 node todos-encartes/baixar-todos.js --dpi 300
 
 # Só o encarte mais recente de cada rede (útil para teste)
@@ -42,6 +42,9 @@ node todos-encartes/baixar-todos.js --sem-reuso
 
 # Inclui encartes já vencidos (só afeta Super do Povo)
 node todos-encartes/baixar-todos.js --all
+
+# Lista redes e scripts sem executar downloads
+node todos-encartes/baixar-todos.js --dry-run
 
 # Resultado estruturado (última linha do stdout), consumido pelo pipeline do site
 node todos-encartes/baixar-todos.js --json
@@ -62,7 +65,9 @@ O Assaí aceita `--base`, `--only-newest` e `--sem-reuso`, mas não `--dpi` nem 
 
 O Center Box aceita `--base` e `--sem-reuso`, mas não `--dpi`, `--only-newest` nem `--all` (usa imagens diretas da seção "Ofertas da semana", sem PDF e sem vigência em campo parseável).
 
-Não existe `--output` aqui — ele apontaria as dez redes pra mesma pasta, sobrescrevendo uma a outra. Pra isso, rode a skill da rede específica.
+A Uniforça aceita `--base`, `--sem-reuso` e `--dpi`, mas não `--only-newest` nem `--all`. Baixa cada item de `promotions__item` como encarte próprio, mantém PDFs em `PDF/` e rasteriza suas páginas em `JPG/`; imagens diretas vão para `JPG/`.
+
+Não existe `--output` aqui — ele apontaria as onze redes pra mesma pasta, sobrescrevendo uma a outra. Pra isso, rode a skill da rede específica.
 
 ## Comportamento ao acionar
 
@@ -85,7 +90,7 @@ Nunca usar tachado (~~R$ X~~). Sempre o formato "de ... por".
 
 ### Estrutura da resposta
 
-Organizar por categoria com cabeçalho em negrito. Dentro de cada categoria, ordenar do maior pro menor desconto e indicar a rede de cada item (já que agora há dez fontes). Incluir só itens com desconto relevante (acima de 15% ou preço muito bom). Exemplo:
+Organizar por categoria com cabeçalho em negrito. Dentro de cada categoria, ordenar do maior pro menor desconto e indicar a rede de cada item (já que agora há onze fontes). Incluir só itens com desconto relevante (acima de 15% ou preço muito bom). Exemplo:
 
 **Açougue**
 - Picanha Bovina Maturatta Congelada Peça: de R$ 107,90 por **R$ 84,90/kg** (21% off) — São Luiz

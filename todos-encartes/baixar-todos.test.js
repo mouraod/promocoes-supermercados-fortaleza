@@ -7,6 +7,7 @@
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
+const { execFileSync } = require("node:child_process");
 
 const { montarResultadoJson, pastaDoResumo, REDES } = require("./baixar-todos");
 
@@ -16,6 +17,14 @@ test("cada rede do registry tem slug para casar com o enviar-todos.mjs", () => {
   }
   const slugs = REDES.map((r) => r.slug);
   assert.equal(new Set(slugs).size, slugs.length, "slug repetido");
+});
+
+test("dry-run lista todas as redes sem iniciar downloads", () => {
+  const saida = execFileSync("node", [__filename.replace(/\.test\.js$/, ".js"), "--dry-run"], {
+    encoding: "utf8",
+  });
+  assert.match(saida, /Dry-run: nenhum download será executado/);
+  assert.match(saida, /Uniforca: .*uniforca-encartes.*download-encartes\.js/);
 });
 
 test("pastaDoResumo lê só a linha Destino do filho", () => {
