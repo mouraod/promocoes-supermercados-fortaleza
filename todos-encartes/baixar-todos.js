@@ -8,6 +8,15 @@ const { spawn, execFileSync } = require("child_process");
 const fsSync = require("fs");
 const { REDES: REDES_PADRAO } = require("../lib/redes");
 const { emitirEvento, lerLinhas } = require("../lib/eventos");
+const { criarCorretorConversao, orcamentoConversoes } = require("../lib/conversao");
+
+// Orçamento global de pdftoppm simultâneos, somando todas as redes: as redes
+// rodam em processos filhos e pedem cada vaga a este processo pelo canal IPC.
+let corretorConversao = null;
+function corretor() {
+  if (!corretorConversao) corretorConversao = criarCorretorConversao(orcamentoConversoes());
+  return corretorConversao;
+}
 
 // MMB_REDES_JSON é um seam interno só para testes: aponta para um JSON
 // { "root": "...", "redes": [...] } com redes falsas. Não é interface pública
@@ -49,9 +58,13 @@ function rodarScript(scriptPath, args, { aoEvento = () => {} } = {}) {
   return new Promise((resolve) => {
     let erroSpawn = null;
     let saida = "";
+    // O 4º canal (IPC) só carrega pedidos/liberações de vaga de conversão;
+    // stdout e stderr continuam iguais.
     const proc = spawn("node", [scriptPath, ...args], {
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ["ignore", "pipe", "pipe", "ipc"],
+      env: { ...process.env, MMB_CONVERSAO_IPC: "1" },
     });
+    corretor().anexar(proc);
     proc.stdout.setEncoding("utf8");
     // Acumula a saída da rede para imprimir o bloco inteiro quando ela terminar;
     // com stdio: "inherit" as redes em paralelo intercalariam as linhas.
