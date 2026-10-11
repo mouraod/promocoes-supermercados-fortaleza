@@ -174,7 +174,8 @@ test("eventos por rede chegam no stderr com rede, conversão e falha sanitizada"
   }
   const convOk = eventos.find((e) => e.rede === "compdf" && e.evento === "conversao_ok");
   const dlOk = eventos.find((e) => e.rede === "compdf" && e.evento === "download_ok");
-  assert.ok(convOk.ms >= 25 && convOk.ms <= dlOk.ms, `conversao ${convOk.ms} vs download ${dlOk.ms}`);
+  // 2 páginas de 15 ms; com F4 podem rodar juntas (tempo de parede >= 15 ms).
+  assert.ok(convOk.ms >= 12 && convOk.ms <= dlOk.ms, `conversao ${convOk.ms} vs download ${dlOk.ms}`);
 
   // O texto bruto do filho continua no bloco do stdout (como antes), mas
   // nenhum evento carrega URL ou o token sentinela.
