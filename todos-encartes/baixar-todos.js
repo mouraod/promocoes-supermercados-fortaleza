@@ -119,6 +119,18 @@ async function preChecagem() {
 
 // ─── args ─────────────────────────────────────────────────────────────────────
 
+// Nº de redes simultâneas: inteiro positivo escrito só com dígitos. Valor
+// inválido (0, negativo, decimal, texto, vazio) é rejeitado antes de qualquer
+// download, em vez de cair silenciosamente para outro número.
+function lerConcorrencia(valor, opcao = "--paralelo") {
+  const texto = String(valor ?? "");
+  const numero = Number(texto);
+  if (!/^[1-9][0-9]*$/.test(texto) || !Number.isSafeInteger(numero)) {
+    throw new Error(`${opcao} espera um inteiro positivo, veio: ${valor === undefined ? "(nada)" : JSON.stringify(texto)}`);
+  }
+  return numero;
+}
+
 function parseArgs(argv) {
   const args = {
     base: path.join(os.homedir(), "Downloads", "Encartes"),
@@ -138,7 +150,7 @@ function parseArgs(argv) {
     else if (arg === "--only-newest") args.onlyNewest = true;
     else if (arg === "--sem-reuso") args.semReuso = true;
     else if (arg === "--all") args.all = true;
-    else if (arg === "--paralelo") args.paralelo = Number(argv[++i]);
+    else if (arg === "--paralelo") args.paralelo = lerConcorrencia(argv[++i]);
     else if (arg === "--json") args.json = true;
     else if (arg === "--dry-run") args.dryRun = true;
     else if (arg === "--output") {
@@ -167,7 +179,8 @@ Opções:
   --only-newest   Baixa apenas o encarte mais recente (não se aplica a Mercadão, Frangolandia, Mateus, Center Box nem Uniforça)
   --sem-reuso     Não reaproveita páginas de rodadas anteriores
   --all           Inclui encartes já vencidos (só SuperDoPovo)
-  --paralelo      Nº de redes baixando ao mesmo tempo (máx. 3). Padrão: 1 (sequencial)
+  --paralelo      Nº de redes baixando ao mesmo tempo (inteiro positivo). Padrão: 1 (sequencial);
+                  o enviar-todos.mjs usa 3 (subir exige folga de memória/CPU: cada rede com Chromium)
   --json          Imprime, como última linha, o resultado estruturado da rodada
   --dry-run       Lista as redes e scripts sem executar downloads
   --help          Exibe esta mensagem
@@ -277,9 +290,11 @@ async function main() {
   const dateLabel = dateFolderName(new Date());
   console.log(`Rodada ${dateLabel}\n`);
 
-  // Pool simples: no máximo `limite` rodarScript em voo. Cap em 3 (8 Chromiums
-  // simultâneos seriam ~3GB e contenda de CPU).
-  const limite = Math.min(3, Number(args.paralelo) || 1);
+  // Pool simples: no máximo `limite` rodarScript em voo. O limite vem
+  // validado de --paralelo; o padrão do enviar-todos.mjs continua 3, porque
+  // cada rede com Chromium pesa em memória e CPU (8 simultâneos ~3GB).
+  // Mais vagas que redes não muda nada, então não abre pools ociosos.
+  const limite = Math.min(lerConcorrencia(args.paralelo), REDES.length);
   const resultados = new Array(REDES.length); // preserva a ordem de REDES no resumo
   let proxima = 0;
   // Todas as redes entram na fila agora; a espera de cada uma vai até a vaga.
@@ -382,4 +397,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { montarResultadoJson, pastaDoResumo, REDES };
+module.exports = { montarResultadoJson, pastaDoResumo, lerConcorrencia, REDES };
