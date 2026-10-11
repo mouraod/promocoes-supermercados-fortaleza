@@ -231,3 +231,55 @@ test("sanitizarErro remove URL, credencial e quebras de linha", () => {
   assert.equal(texto.includes("\n"), false);
   assert.equal(texto.includes("abc"), false);
 });
+
+// ─── F2: resultado de cada rede disponível ao pai assim que ela termina ──────
+
+test("download_ok leva a pasta da rede antes de a rede lenta terminar, igual ao JSON final", async () => {
+  const root0 = await fs.mkdtemp(path.join(os.tmpdir(), "baixar-todos-f2-"));
+  const liberar = path.join(root0, "liberar");
+  const { root, arquivo } = await montarRegistro([
+    { nome: "Lenta", slug: "lenta", pdf: true, liberarArquivo: liberar },
+    { nome: "Rapida", slug: "rapida", pdf: false },
+    { nome: "Quebrada", slug: "quebrada", falhar: true },
+  ]);
+  let pastaAntes = null;
+  const resultado = await rodarBaixarTodos(arquivo, path.join(root, "base"), {
+    aoStderr: (stderr) => {
+      if (pastaAntes !== null) return;
+      const ok = eventosDe(stderr).find((e) => e.rede === "rapida" && e.evento === "download_ok");
+      if (!ok) return;
+      // A lenta só termina depois de `liberar`: o evento chegou com ela rodando.
+      pastaAntes = fsSync.existsSync(liberar) ? false : ok.pasta_download;
+      fsSync.writeFileSync(liberar, "ok");
+    },
+  });
+  assert.equal(resultado.code, 1);
+  assert.ok(typeof pastaAntes === "string" && pastaAntes.length > 0, "pasta da rápida deveria chegar antes da lenta terminar");
+
+  const json = resumoJson(resultado.stdout);
+  assert.deepEqual(json.redes.map((r) => r.rede), ["lenta", "rapida", "quebrada"], "JSON final na ordem de configuração");
+  const final = Object.fromEntries(json.redes.map((r) => [r.rede, r]));
+  assert.equal(pastaAntes, final.rapida.pasta_download);
+
+  const eventos = eventosDe(resultado.stderr);
+  const lentaOk = eventos.find((e) => e.rede === "lenta" && e.evento === "download_ok");
+  assert.equal(lentaOk.pasta_download, final.lenta.pasta_download);
+  const falhou = eventos.find((e) => e.rede === "quebrada" && e.evento === "download_falhou");
+  assert.equal("pasta_download" in falhou, false, "falha nunca leva pasta");
+  assert.equal(resultado.stderr.includes(SENTINELA), false);
+
+  await fs.rm(root, { recursive: true, force: true });
+  await fs.rm(root0, { recursive: true, force: true });
+});
+
+test("evento só aceita pasta local em download_ok", () => {
+  const { formatarEvento } = require("../lib/eventos");
+  const ok = lerEvento(formatarEvento({ rede: "x", evento: "download_ok", ms: 1, pasta_download: "/tmp/Encartes/X/11-Outubro" }));
+  assert.equal(ok.pasta_download, "/tmp/Encartes/X/11-Outubro");
+  const url = lerEvento(formatarEvento({ rede: "x", evento: "download_ok", ms: 1, pasta_download: `https://x.test/?t=${SENTINELA}` }));
+  assert.equal("pasta_download" in url, false);
+  const controle = lerEvento(formatarEvento({ rede: "x", evento: "download_ok", ms: 1, pasta_download: "/tmp/a\nb" }));
+  assert.equal("pasta_download" in controle, false);
+  const falha = lerEvento(formatarEvento({ rede: "x", evento: "download_falhou", erro: "e", pasta_download: "/tmp/a" }));
+  assert.equal("pasta_download" in falha, false);
+});
