@@ -283,3 +283,147 @@ test("evento só aceita pasta local em download_ok", () => {
   const falha = lerEvento(formatarEvento({ rede: "x", evento: "download_falhou", erro: "e", pasta_download: "/tmp/a" }));
   assert.equal("pasta_download" in falha, false);
 });
+
+// ─── F1: --paralelo validado e encaminhado ao pool existente ─────────────────
+// Redes falsas mínimas: dormem o tempo pedido, gravam início/fim num log e
+// devolvem a linha Destino. Sem rede real e sem poppler/Chromium.
+
+function scriptRedeLenta({ nome, ms, log, marcador = null }) {
+  return `"use strict";
+const fs = require("fs");
+const path = require("path");
+const log = ${JSON.stringify(log)};
+const marcador = ${JSON.stringify(marcador)};
+if (marcador) fs.writeFileSync(marcador, "rodou");
+fs.appendFileSync(log, JSON.stringify({ rede: ${JSON.stringify(nome)}, evento: "inicio", t: Date.now() }) + "\\n");
+setTimeout(() => {
+  const base = process.argv[process.argv.indexOf("--base") + 1];
+  const pasta = path.join(base, ${JSON.stringify(nome)}, "11-Outubro");
+  fs.mkdirSync(path.join(pasta, "JPG"), { recursive: true });
+  fs.writeFileSync(path.join(pasta, "JPG", "e-pagina-01.jpg"), "jpg");
+  fs.appendFileSync(log, JSON.stringify({ rede: ${JSON.stringify(nome)}, evento: "fim", t: Date.now() }) + "\\n");
+  console.log("Destino: " + pasta);
+}, ${Number(ms)});
+`;
+}
+
+async function registroLento(redes) {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "baixar-todos-f1-"));
+  const log = path.join(root, "pool.log");
+  const registro = { root, redes: [] };
+  for (const rede of redes) {
+    await fs.mkdir(path.join(root, rede.slug), { recursive: true });
+    await fs.writeFile(path.join(root, rede.slug, "rede.js"), scriptRedeLenta({ ...rede, log }));
+    registro.redes.push({
+      nome: rede.nome, slug: rede.slug, pasta: rede.slug, script: "rede.js",
+      flags: [], deps: { poppler: false, playwright: false },
+    });
+  }
+  const arquivo = path.join(root, "redes.json");
+  await fs.writeFile(arquivo, JSON.stringify(registro));
+  return { root, arquivo, log };
+}
+
+function rodarComParalelo(arquivo, base, paralelo) {
+  return new Promise((resolve) => {
+    const env = { ...process.env, MMB_REDES_JSON: arquivo };
+    delete env.MMB_EVENTOS;
+    const argumentos = [BAIXAR_TODOS, "--json", "--base", base];
+    if (paralelo !== undefined) argumentos.push("--paralelo", paralelo);
+    const inicio = performance.now();
+    const proc = spawn(process.execPath, argumentos, { env, stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    proc.stdout.setEncoding("utf8");
+    proc.stderr.setEncoding("utf8");
+    proc.stdout.on("data", (c) => { stdout += c; });
+    proc.stderr.on("data", (c) => { stderr += c; });
+    proc.on("close", (code) => resolve({ code, stdout, stderr, ms: performance.now() - inicio }));
+  });
+}
+
+function lerPool(log) {
+  if (!fsSync.existsSync(log)) return [];
+  return fsSync.readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+}
+
+function pico(eventos) {
+  const ordenados = [...eventos].sort((a, b) => a.t - b.t || (a.evento === "fim" ? -1 : 1));
+  let ativos = 0;
+  let maior = 0;
+  for (const e of ordenados) {
+    ativos += e.evento === "inicio" ? 1 : -1;
+    maior = Math.max(maior, ativos);
+  }
+  return maior;
+}
+
+test("lerConcorrencia aceita só inteiro positivo", () => {
+  const { lerConcorrencia } = require("./baixar-todos");
+  assert.equal(lerConcorrencia("1"), 1);
+  assert.equal(lerConcorrencia("4"), 4);
+  assert.equal(lerConcorrencia("12"), 12);
+  for (const invalido of ["0", "-1", "1.5", "abc", "", " 3", "3 ", "1e1", "0x4", "03", "Infinity", undefined, "99999999999999999999"]) {
+    assert.throws(() => lerConcorrencia(invalido), /inteiro positivo/, `deveria rejeitar ${JSON.stringify(invalido)}`);
+  }
+});
+
+test("--paralelo inválido falha antes de iniciar qualquer rede", async () => {
+  const root0 = await fs.mkdtemp(path.join(os.tmpdir(), "baixar-todos-f1-invalido-"));
+  const marcador = path.join(root0, "rodou");
+  const { root, arquivo, log } = await registroLento([{ nome: "Cometa", slug: "cometa", ms: 10, marcador }]);
+  for (const invalido of ["0", "-1", "1.5", "abc", ""]) {
+    const r = await rodarComParalelo(arquivo, path.join(root, "base"), invalido);
+    assert.equal(r.code, 1, `--paralelo ${invalido}`);
+    assert.match(r.stderr, /--paralelo espera um inteiro positivo/);
+    assert.equal(fsSync.existsSync(marcador), false, `--paralelo ${invalido} não pode rodar rede`);
+    assert.deepEqual(lerPool(log), []);
+    // O resultado estruturado continua completo para o pai.
+    assert.deepEqual(resumoJson(r.stdout).redes.map((x) => [x.rede, x.ok]), [["cometa", false]]);
+  }
+  await fs.rm(root, { recursive: true, force: true });
+  await fs.rm(root0, { recursive: true, force: true });
+});
+
+test("--paralelo 4 roda quatro redes juntas; 3 continua no máximo três; ordem fixa", async () => {
+  // Durações diferentes fazem a ordem de término diferir da de configuração.
+  const redes = [
+    { nome: "Cometa", slug: "cometa", ms: 1500 },
+    { nome: "SaoLuiz", slug: "saoluiz", ms: 900 },
+    { nome: "MercadaoSaoLuiz", slug: "mercadao", ms: 1200 },
+    { nome: "SuperDoPovo", slug: "superdopovo", ms: 600 },
+  ];
+  const quatro = await registroLento(redes);
+  const r4 = await rodarComParalelo(quatro.arquivo, path.join(quatro.root, "base"), "4");
+  assert.equal(r4.code, 0, r4.stderr);
+  const eventos4 = lerPool(quatro.log);
+  assert.equal(pico(eventos4), 4);
+  assert.ok(r4.ms < 1500 * 1.5, `quatro redes em paralelo levaram ${Math.round(r4.ms)} ms`);
+  const termino = eventos4.filter((e) => e.evento === "fim").sort((a, b) => a.t - b.t).map((e) => e.rede);
+  assert.notDeepEqual(termino, redes.map((r) => r.nome));
+
+  const tres = await registroLento(redes);
+  const r3 = await rodarComParalelo(tres.arquivo, path.join(tres.root, "base"), "3");
+  assert.equal(r3.code, 0, r3.stderr);
+  assert.equal(pico(lerPool(tres.log)), 3, "padrão do enviar-todos (3) não muda");
+
+  const ordem = redes.map((r) => r.slug);
+  assert.deepEqual(resumoJson(r4.stdout).redes.map((r) => r.rede), ordem);
+  assert.deepEqual(resumoJson(r3.stdout).redes.map((r) => r.rede), ordem);
+  const normalizar = (stdout, root) => JSON.stringify(resumoJson(stdout)).split(root).join("<root>");
+  assert.equal(normalizar(r4.stdout, quatro.root), normalizar(r3.stdout, tres.root));
+
+  await fs.rm(quatro.root, { recursive: true, force: true });
+  await fs.rm(tres.root, { recursive: true, force: true });
+});
+
+test("sem --paralelo o baixar-todos continua sequencial", async () => {
+  const { root, arquivo, log } = await registroLento([
+    { nome: "Cometa", slug: "cometa", ms: 100 },
+    { nome: "SaoLuiz", slug: "saoluiz", ms: 100 },
+  ]);
+  const r = await rodarComParalelo(arquivo, path.join(root, "base"));
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(pico(lerPool(log)), 1);
+  await fs.rm(root, { recursive: true, force: true });
+});
