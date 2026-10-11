@@ -302,7 +302,9 @@ async function main() {
         rede: rede.slug,
         evento: r?.ok ? "download_ok" : "download_falhou",
         ms: performance.now() - inicio,
-        ...(r?.ok ? {} : { erro: r?.erro ?? "falha desconhecida" }),
+        // A pasta sai já no evento: o pai começa o envio desta rede sem
+        // esperar o JSON agregado do fim, que continua igual.
+        ...(r?.ok ? { pasta_download: r.pasta_download } : { erro: r?.erro ?? "falha desconhecida" }),
       });
     }
   }
