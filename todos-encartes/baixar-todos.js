@@ -5,9 +5,24 @@ const path = require("path");
 const os = require("os");
 const { spawn, execFileSync } = require("child_process");
 
-const { REDES } = require("../lib/redes");
+const fsSync = require("fs");
+const { REDES: REDES_PADRAO } = require("../lib/redes");
+const { emitirEvento, lerLinhas } = require("../lib/eventos");
 
-const ROOT = path.join(__dirname, "..");
+// MMB_REDES_JSON é um seam interno só para testes: aponta para um JSON
+// { "root": "...", "redes": [...] } com redes falsas. Não é interface pública
+// e não deve ser usado em execução real.
+function carregarRegistro() {
+  const caminho = process.env.MMB_REDES_JSON;
+  if (!caminho) return { REDES: REDES_PADRAO, ROOT: path.join(__dirname, "..") };
+  const registro = JSON.parse(fsSync.readFileSync(caminho, "utf8"));
+  if (!Array.isArray(registro.redes) || typeof registro.root !== "string") {
+    throw new Error("MMB_REDES_JSON precisa de { root, redes }");
+  }
+  return { REDES: registro.redes, ROOT: registro.root };
+}
+
+const { REDES, ROOT } = carregarRegistro();
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -30,7 +45,7 @@ async function lerManifestSeExistir(destino) {
   }
 }
 
-function rodarScript(scriptPath, args) {
+function rodarScript(scriptPath, args, { aoEvento = () => {} } = {}) {
   return new Promise((resolve) => {
     let erroSpawn = null;
     let saida = "";
@@ -38,11 +53,12 @@ function rodarScript(scriptPath, args) {
       stdio: ["ignore", "pipe", "pipe"],
     });
     proc.stdout.setEncoding("utf8");
-    proc.stderr.setEncoding("utf8");
     // Acumula a saída da rede para imprimir o bloco inteiro quando ela terminar;
     // com stdio: "inherit" as redes em paralelo intercalariam as linhas.
+    // O stderr é lido linha a linha: eventos de progresso seguem na hora para
+    // o pai; o resto continua acumulado no bloco como antes.
     proc.stdout.on("data", (chunk) => { saida += chunk; });
-    proc.stderr.on("data", (chunk) => { saida += chunk; });
+    lerLinhas(proc.stderr, { aoEvento, aoTexto: (texto) => { saida += texto; } });
     proc.on("error", (err) => { erroSpawn = err; });
     proc.on("close", (code) => resolve({ code, erroSpawn, saida }));
   });
@@ -266,11 +282,33 @@ async function main() {
   const limite = Math.min(3, Number(args.paralelo) || 1);
   const resultados = new Array(REDES.length); // preserva a ordem de REDES no resumo
   let proxima = 0;
+  // Todas as redes entram na fila agora; a espera de cada uma vai até a vaga.
+  const entradaFila = performance.now();
 
   async function rodarRede(idx) {
     const rede = REDES[idx];
     const scriptPath = path.join(ROOT, rede.pasta, rede.script);
-    const { code, erroSpawn, saida } = await rodarScript(scriptPath, argsPorRede(rede, args));
+    const inicio = performance.now();
+    emitirEvento({ rede: rede.slug, evento: "download_iniciado", espera_ms: inicio - entradaFila });
+    const { code, erroSpawn, saida } = await rodarScript(scriptPath, argsPorRede(rede, args), {
+      // O filho não sabe o slug; o orquestrador carimba a rede de cada evento.
+      aoEvento: (evento) => emitirEvento({ ...evento, rede: rede.slug }),
+    });
+    try {
+      await registrarResultado(idx, { code, erroSpawn, saida });
+    } finally {
+      const r = resultados[idx];
+      emitirEvento({
+        rede: rede.slug,
+        evento: r?.ok ? "download_ok" : "download_falhou",
+        ms: performance.now() - inicio,
+        ...(r?.ok ? {} : { erro: r?.erro ?? "falha desconhecida" }),
+      });
+    }
+  }
+
+  async function registrarResultado(idx, { code, erroSpawn, saida }) {
+    const rede = REDES[idx];
     console.log(`─── ${rede.nome} ───\n${saida}\n`);
 
     if (erroSpawn || code !== 0) {
