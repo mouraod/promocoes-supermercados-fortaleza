@@ -1,0 +1,42 @@
+{
+  "cidade": "recife-pe",
+  "base": "~/Downloads/Encartes/Recife",
+  "redes": [
+    {
+      "rede": "novo-atacarejo",
+      "nome": "NovoAtacarejo",
+      "adapter": "novo-encartes/download-encartes.js",
+      "loja": "afogados",
+      "fonte": "https://ofertas.novoatacarejo.com/pe/recife/afogados",
+      "identificador_fonte": { "uf": "pe", "cidade": "recife", "loja": "afogados", "marca": "MA" },
+      "hosts_permitidos": ["ofertas.novoatacarejo.com"]
+    },
+    {
+      "rede": "recibom",
+      "nome": "Recibom",
+      "adapter": "recibom-encartes/download-encartes.js",
+      "loja": "torre",
+      "fonte": "https://recibom.com.br/tabloide/",
+      "identificador_fonte": { "url": "https://recibom.com.br/tabloide/" },
+      "hosts_permitidos": ["cdn.bitrix24.com.br"]
+    },
+    {
+      "rede": "assai",
+      "nome": "Assai",
+      "adapter": "assai-encartes/download-encartes.js",
+      "loja": "avenida-recife",
+      "fonte": "https://www.assai.com.br/ofertas/pernambuco/assai-avenida-recife",
+      "identificador_fonte": { "eid": "16", "nid": "16266" },
+      "hosts_permitidos": ["d2q57q7k4hzryv.cloudfront.net"]
+    },
+    {
+      "rede": "atacadao",
+      "nome": "Atacadao",
+      "adapter": "atacadao-encartes/download-encartes.js",
+      "loja": "recife-iputinga",
+      "fonte": "https://www.atacadao.com.br/loja/recife-iputinga",
+      "identificador_fonte": { "slug": "recife-iputinga", "storeId": 47 },
+      "hosts_permitidos": ["apigw.cloud.carrefour.com.br"]
+    }
+  ]
+}

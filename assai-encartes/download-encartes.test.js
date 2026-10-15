@@ -128,7 +128,7 @@ test("descobrir abre contexto Chrome comum antes de requisitar ofertas", async (
       assert.equal(predicado(respostaJson), true);
       return respostaJson;
     },
-    goto: async () => {},
+    goto: async (url) => { assert.equal(url, "https://www.assai.com.br/ofertas/ceara/assai-bezerra-m-fortaleza"); },
     locator: () => ({ evaluate: async () => BEZERRA_M }),
   };
   const navegador = {
@@ -148,4 +148,32 @@ test("descobrir abre contexto Chrome comum antes de requisitar ofertas", async (
   });
   assert.equal(timeoutResposta, 60000);
   assert.equal(navegadorFechado, true);
+});
+
+test("Assaí parametriza URL oficial e conserva o par eid/nid na descoberta", async () => {
+  const url = "https://www.assai.com.br/ofertas/pernambuco/assai-avenida-recife";
+  let visitada;
+  const page = {
+    goto: async (u) => { visitada = u; },
+    waitForResponse: async () => ({ json: async () => ({ lojas: [{ eid: 16, nid: 16266 }], ofertas: [] }) }),
+    locator: () => ({ evaluate: async () => ({ eid: "16", nid: "16266" }) }),
+  };
+  const deps = { chromium: { launch: async () => ({ newContext: async () => ({ newPage: async () => page }), close: async () => {} }) } };
+  assert.deepEqual(await descobrir({ url }, deps), []);
+  assert.equal(visitada, url);
+  await assert.rejects(descobrir({ url: "https://evil.test/ofertas/x" }, deps), /não permitida/);
+});
+
+test("Assaí conserva erro de navegação e fecha browser mesmo quando o payload também falha", async () => {
+  let fechado = false;
+  const deps = { chromium: { launch: async () => ({
+    newContext: async () => ({ newPage: async () => ({
+      waitForResponse: async () => { throw new Error("payload interrompido"); },
+      goto: async () => { throw new Error("navegação falhou"); },
+    }) }),
+    close: async () => { fechado = true; },
+  }) } };
+  await assert.rejects(descobrir({}, deps), /navegação falhou/);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(fechado, true);
 });

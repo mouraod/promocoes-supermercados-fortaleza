@@ -17,9 +17,9 @@ const LOJAS_FORTALEZA = [
   "fortaleza-osorio",
 ];
 
-async function fetchFlyers(slug) {
+async function fetchFlyers(slug, { fetch: buscar = fetch, hoje = todayISO() } = {}) {
   const url = `${LOJA_BASE}/${slug}`;
-  const response = await fetch(url, {
+  const response = await buscar(url, {
     headers: { "User-Agent": "Mozilla/5.0" },
   });
   if (!response.ok) {
@@ -40,7 +40,6 @@ async function fetchFlyers(slug) {
     throw new Error(`Estrutura de flyers não encontrada no __NEXT_DATA__ de ${url}`);
   }
 
-  const hoje = todayISO();
   return storeInfo.flyers.filter((f) => {
     if (f.exclude === true) return false;
     if (!f.validity?.initial || !f.validity?.final) return false;
@@ -48,8 +47,8 @@ async function fetchFlyers(slug) {
   });
 }
 
-async function descobrir(args) {
-  const flyers = await fetchFlyers(args.loja);
+async function descobrir(args, deps) {
+  const flyers = await fetchFlyers(args.loja, deps);
 
   let encartes = flyers;
   if (args.onlyNewest) {
