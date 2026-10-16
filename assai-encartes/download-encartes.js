@@ -79,7 +79,12 @@ function prepararOfertas(payload, lojaPagina, args = {}, avisar = console.warn) 
   return args.onlyNewest ? encartes.slice(0, 1) : encartes;
 }
 
-async function buscarDados({ chromium } = require("playwright")) {
+async function buscarDados(deps = {}, url = OFERTAS_URL) {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || parsed.hostname !== "www.assai.com.br" || parsed.username || parsed.password || !parsed.pathname.startsWith("/ofertas/")) {
+    throw new Error("URL de ofertas Assaí não permitida");
+  }
+  const { chromium } = deps.chromium ? deps : require("playwright");
   const browser = await chromium.launch({ headless: true });
   try {
     const contexto = await browser.newContext(CONTEXTO_CHROME);
@@ -91,8 +96,10 @@ async function buscarDados({ chromium } = require("playwright")) {
         .toLowerCase();
       return resposta.url().includes(CAMINHO_PAYLOAD) && tipoConteudo === "application/json";
     }, { timeout: 60000 });
+    // A navegação pode falhar antes do await do payload; observe sua rejeição.
+    respostaPayload.catch(() => {});
 
-    await page.goto(OFERTAS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
     const lojaPagina = await page.locator(".bloco-ofertas-tabloide").evaluate((elemento) => ({
       eid: elemento.getAttribute("data-eid"),
       nid: elemento.getAttribute("data-nid"),
@@ -109,7 +116,7 @@ async function buscarDados({ chromium } = require("playwright")) {
 }
 
 async function descobrir(args, deps) {
-  const { payload, lojaPagina } = await buscarDados(deps);
+  const { payload, lojaPagina } = await buscarDados(deps, args.url);
   return prepararOfertas(payload, lojaPagina, args);
 }
 
@@ -121,6 +128,7 @@ Uso:
 Opções:
   --base          Pasta raiz. Padrão: ~/Downloads/Encartes
   --output        Substitui base+rede+data por um caminho completo
+  --url           Página oficial da loja. Padrão: Assaí Bezerra M Fortaleza
   --only-newest   Baixa apenas o primeiro encarte exibido pelo site
   --sem-reuso     Não reaproveita páginas de rodadas anteriores
   --help          Exibe esta mensagem
@@ -134,10 +142,10 @@ Requer: cd assai-encartes && npm install && npx playwright install chromium
 }
 
 async function main() {
-  const args = await parsearArgs(process.argv.slice(2), { aceitas: ["only-newest", "sem-reuso"], ajuda });
+  const args = await parsearArgs(process.argv.slice(2), { aceitas: ["url", "only-newest", "sem-reuso"], ajuda });
   await baixarEncartes({
     rede: "Assai",
-    source: OFERTAS_URL,
+    source: args.url ?? OFERTAS_URL,
     descobrir,
     args,
     hostsPermitidos: [HOST_IMAGENS],
