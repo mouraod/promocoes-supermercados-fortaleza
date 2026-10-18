@@ -1,0 +1,50 @@
+{
+  "cidade": "juazeiro-do-norte-ce",
+  "base": "~/Downloads/Encartes/JuazeiroDoNorte",
+  "redes": [
+    {
+      "rede": "atacadao",
+      "nome": "Atacadao",
+      "adapter": "atacadao-encartes/download-encartes.js",
+      "loja": "juazeiro-do-norte",
+      "fonte": "https://www.atacadao.com.br/loja/juazeiro-do-norte",
+      "identificador_fonte": {
+        "slug": "juazeiro-do-norte",
+        "storeId": 82
+      },
+      "hosts_permitidos": [
+        "apigw.cloud.carrefour.com.br"
+      ]
+    },
+    {
+      "rede": "assai",
+      "nome": "Assai",
+      "adapter": "assai-encartes/download-encartes.js",
+      "loja": "juazeiro-do-norte",
+      "fonte": "https://www.assai.com.br/ofertas/ceara/assai-juazeiro-do-norte",
+      "identificador_fonte": {
+        "eid": "5",
+        "nid": "81"
+      },
+      "hosts_permitidos": [
+        "d2q57q7k4hzryv.cloudfront.net"
+      ]
+    },
+    {
+      "rede": "mateus",
+      "nome": "Mateus",
+      "adapter": "mateus-encartes/download-encartes.js",
+      "loja": "mix-juazeiro-do-norte",
+      "fonte": "https://ofertasmateus.com/api-proxy.php?endpoint=/encartes/ce/juazeiro-do-norte/mix-juazeiro-do-norte",
+      "identificador_fonte": {
+        "uf": "ce",
+        "cidade": "juazeiro-do-norte",
+        "loja": "mix-juazeiro-do-norte",
+        "marca": "MA"
+      },
+      "hosts_permitidos": [
+        "ofertasmateus.com"
+      ]
+    }
+  ]
+}

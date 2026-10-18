@@ -1,0 +1,50 @@
+{
+  "cidade": "sao-luis-ma",
+  "base": "~/Downloads/Encartes/SaoLuis",
+  "redes": [
+    {
+      "rede": "atacadao",
+      "nome": "Atacadao",
+      "adapter": "atacadao-encartes/download-encartes.js",
+      "loja": "sao-luis",
+      "fonte": "https://www.atacadao.com.br/loja/sao-luis",
+      "identificador_fonte": {
+        "slug": "sao-luis",
+        "storeId": 747
+      },
+      "hosts_permitidos": [
+        "apigw.cloud.carrefour.com.br"
+      ]
+    },
+    {
+      "rede": "assai",
+      "nome": "Assai",
+      "adapter": "assai-encartes/download-encartes.js",
+      "loja": "sao-luis-turu",
+      "fonte": "https://www.assai.com.br/ofertas/maranhao/assai-sao-luis-turu",
+      "identificador_fonte": {
+        "eid": "9",
+        "nid": "11617"
+      },
+      "hosts_permitidos": [
+        "d2q57q7k4hzryv.cloudfront.net"
+      ]
+    },
+    {
+      "rede": "mateus",
+      "nome": "Mateus",
+      "adapter": "mateus-encartes/download-encartes.js",
+      "loja": "mix-vinhais",
+      "fonte": "https://ofertasmateus.com/api-proxy.php?endpoint=/encartes/ma/sao-luis/mix-vinhais",
+      "identificador_fonte": {
+        "uf": "ma",
+        "cidade": "sao-luis",
+        "loja": "mix-vinhais",
+        "marca": "MA"
+      },
+      "hosts_permitidos": [
+        "ofertasmateus.com"
+      ]
+    }
+  ]
+}
