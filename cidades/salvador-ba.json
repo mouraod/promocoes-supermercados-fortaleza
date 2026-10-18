@@ -1,0 +1,50 @@
+{
+  "cidade": "salvador-ba",
+  "base": "~/Downloads/Encartes/Salvador",
+  "redes": [
+    {
+      "rede": "atacadao",
+      "nome": "Atacadao",
+      "adapter": "atacadao-encartes/download-encartes.js",
+      "loja": "salvador-iguatemi",
+      "fonte": "https://www.atacadao.com.br/loja/salvador-iguatemi",
+      "identificador_fonte": {
+        "slug": "salvador-iguatemi",
+        "storeId": 920
+      },
+      "hosts_permitidos": [
+        "apigw.cloud.carrefour.com.br"
+      ]
+    },
+    {
+      "rede": "assai",
+      "nome": "Assai",
+      "adapter": "assai-encartes/download-encartes.js",
+      "loja": "salvador-paralela",
+      "fonte": "https://www.assai.com.br/ofertas/bahia/assai-salvador-paralela",
+      "identificador_fonte": {
+        "eid": "4",
+        "nid": "29381"
+      },
+      "hosts_permitidos": [
+        "d2q57q7k4hzryv.cloudfront.net"
+      ]
+    },
+    {
+      "rede": "mateus",
+      "nome": "Mateus",
+      "adapter": "mateus-encartes/download-encartes.js",
+      "loja": "mix-salvador-norte-shopping",
+      "fonte": "https://ofertasmateus.com/api-proxy.php?endpoint=/encartes/ba/salvador-/mix-salvador-norte-shopping",
+      "identificador_fonte": {
+        "uf": "ba",
+        "cidade": "salvador-",
+        "loja": "mix-salvador-norte-shopping",
+        "marca": "MA"
+      },
+      "hosts_permitidos": [
+        "ofertasmateus.com"
+      ]
+    }
+  ]
+}

@@ -51,3 +51,22 @@ test("mapearEncartes filtra vencidos e itens sem PDF, e monta slug + URL do prox
 test("mapearEncartes devolve vazio quando não há encartes vigentes", () => {
   assert.deepEqual(mapearEncartes([], "2026-09-13"), []);
 });
+
+test("listarEncartes usa UF do argumento e cidade/marca do cadastro da loja", async () => {
+  const { listarEncartes } = require("./download-encartes");
+  const endpoints = [];
+  const buscar = async (url) => {
+    const endpoint = new URL(url).searchParams.get("endpoint");
+    endpoints.push(endpoint);
+    const data = endpoint.startsWith("/lojas/")
+      ? { idloja: "mix-salvador-norte-shopping", cidade: "salvador-", marca: "MA" }
+      : [];
+    return { ok: true, json: async () => ({ status: "success", data }) };
+  };
+  await listarEncartes("mix-salvador-norte-shopping", "ba", buscar);
+  assert.deepEqual(endpoints, [
+    "/lojas/mix-salvador-norte-shopping",
+    "/encartes/ba/salvador-/mix-salvador-norte-shopping?marca=MA",
+  ]);
+  await assert.rejects(listarEncartes("mix-x", "BA", buscar), /--uf/);
+});
