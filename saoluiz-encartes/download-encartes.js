@@ -23,7 +23,12 @@ async function descobrir(args) {
   await page.goto(STORE_URL, { waitUntil: "networkidle", timeout: 60000 });
   await browser.close();
 
-  if (!flipbooksPayload || !Array.isArray(flipbooksPayload.flipbooks)) return [];
+  if (!flipbooksPayload || !Array.isArray(flipbooksPayload.flipbooks)) {
+    throw new Error(`Payload de /flipbooks não interceptado em ${STORE_URL}.`);
+  }
+  if (flipbooksPayload.flipbooks.length === 0) {
+    throw new Error(`O site respondeu, mas a loja 355 está com 0 encartes cadastrados (nada publicado no momento).`);
+  }
 
   let encartes = flipbooksPayload.flipbooks;
   if (args.onlyNewest) {

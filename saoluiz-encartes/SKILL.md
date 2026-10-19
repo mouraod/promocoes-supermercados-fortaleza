@@ -43,6 +43,30 @@ Downloads/Encartes/SaoLuiz/25-Junho/
   manifest.json
 ```
 
+## Ofertas estruturadas (quando a loja publica a lista)
+
+Quando o site esta sem flipbooks (`{"flipbooks":[]}` — a plataforma zera os
+encartes antes de publicar a semana nova), a mesma loja continua publicando a
+lista de ofertas em `/loja/355/ofertas`. Essa pagina e so o render de uma API
+JSON, entao nao precisa ler imagem:
+
+```bash
+node saoluiz-encartes/ofertas.js /tmp/sl-ofertas.json
+# ofertas=76 validade=2026-10-21,2026-11-01,2026-10-19,2026-10-25,2026-11-02 com_medida=69 pedido=76
+```
+
+O coletor abre a pagina com Playwright, pega o token da propria pagina e le
+`brand_categories` + `items/offers?section_id=<id>&limit=100`. Cada oferta sai
+com nome, preco, preco riscado, medida, categoria e a **validade real** da
+plataforma (`end_at`), que o encarte em imagem nao tem.
+
+O JSON segue o contrato de oferta do site e vai para a rota
+`/api/public/ingest/ofertas-lista` (encarte sem paginas, `pagina_id` nulo):
+
+```bash
+node ~/Mercado-privado/scripts/enviar-ofertas-lista.mjs /tmp/sl-ofertas.json
+```
+
 ## Opcoes
 
 ```bash
