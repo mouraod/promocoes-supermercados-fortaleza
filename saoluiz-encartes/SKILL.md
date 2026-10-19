@@ -43,27 +43,36 @@ Downloads/Encartes/SaoLuiz/25-Junho/
   manifest.json
 ```
 
-## Ofertas estruturadas (quando a loja publica a lista)
+## Quando a loja esta sem encarte em imagem
 
-Quando o site esta sem flipbooks (`{"flipbooks":[]}` — a plataforma zera os
-encartes antes de publicar a semana nova), a mesma loja continua publicando a
-lista de ofertas em `/loja/355/ofertas`. Essa pagina e so o render de uma API
-JSON, entao nao precisa ler imagem:
+A plataforma zera os flipbooks entre a semana que acabou e a que vai comecar:
+`/flipbooks` volta `{"flipbooks":[]}` e nao ha imagem para baixar. Nesse estado o
+script NAO falha: ele cai na lista de ofertas de `/loja/355/ofertas` e grava a
+pasta da rodada so com dados, no mesmo formato das redes com imagem:
+
+```
+Downloads/Encartes/SaoLuiz/19-Outubro/
+  ofertas.json     # nome, preco, preco riscado, medida, categoria e validade real
+  manifest.json    # totalEncartes: 0, totalPaginas: 0, totalOfertas: 76
+```
+
+```
+SaoLuiz | 19-Outubro
+Encartes: 0 | Paginas: 0 | Ofertas: 76 (lista da loja, sem imagem)
+Destino: /Users/.../Encartes/SaoLuiz/19-Outubro
+```
+
+A pagina `/ofertas` e so o render de uma API JSON, entao nao precisa ler imagem:
+o coletor pega o token da propria pagina e le `brand_categories` +
+`items/offers?section_id=<id>&limit=100`. Cada oferta traz a **validade real** da
+plataforma (`end_at`), que o encarte em imagem nao tem.
+
+O `/atualizar-site` reconhece a pasta com `ofertas.json` e envia pela rota sem
+pagina (`/api/public/ingest/ofertas-lista`), sem passar por worker de visao. Para
+rodar so a coleta e o envio, na mao:
 
 ```bash
 node saoluiz-encartes/ofertas.js /tmp/sl-ofertas.json
-# ofertas=76 validade=2026-10-21,2026-11-01,2026-10-19,2026-10-25,2026-11-02 com_medida=69 pedido=76
-```
-
-O coletor abre a pagina com Playwright, pega o token da propria pagina e le
-`brand_categories` + `items/offers?section_id=<id>&limit=100`. Cada oferta sai
-com nome, preco, preco riscado, medida, categoria e a **validade real** da
-plataforma (`end_at`), que o encarte em imagem nao tem.
-
-O JSON segue o contrato de oferta do site e vai para a rota
-`/api/public/ingest/ofertas-lista` (encarte sem paginas, `pagina_id` nulo):
-
-```bash
 node ~/Mercado-privado/scripts/enviar-ofertas-lista.mjs /tmp/sl-ofertas.json
 ```
 

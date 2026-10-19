@@ -9,6 +9,7 @@
 
 const { chromium } = require("playwright");
 const { writeFile } = require("node:fs/promises");
+const { medida, normalizar, montarDados } = require("../lib/ofertas-lista");
 
 const LOJA = 355;
 const BASE = "https://merconnect.mercadapp.com.br/mapp/v2";
@@ -34,24 +35,6 @@ const CATEGORIAS = {
   Petshop: "pet",
   "Utilidades e Bazar": "outros",
 };
-
-const LIMITE = { kg: 100, g: 100000, l: 100, ml: 100000, un: 9999 };
-
-function medida(nome) {
-  const t = String(nome).toLowerCase();
-  const peso = t.match(/(\d+(?:[.,]\d+)?) ?(kg|g|ml|l|lt|litros?)\b/);
-  if (peso) {
-    const quantidade = Number(peso[1].replace(",", "."));
-    const unidade = peso[2].startsWith("l") ? "l" : peso[2];
-    if (quantidade > 0 && quantidade <= LIMITE[unidade]) return { quantidade, unidade };
-  }
-  const contagem = t.match(/(?<!n[ºo] )(\d+) ?(?:unidades|un|und|rolos)\b/);
-  if (contagem && Number(contagem[1]) <= LIMITE.un) return { quantidade: Number(contagem[1]), unidade: "un" };
-  // Vendido por peso ou avulso: o tamanho vem implícito no nome.
-  if (/\bkg\b\s*$/.test(t)) return { quantidade: 1, unidade: "kg" };
-  if (/\b(?:unidade|und)\b\s*$/.test(t)) return { quantidade: 1, unidade: "un" };
-  return null;
-}
 
 const dia = (iso) => (iso ? String(iso).slice(0, 10) : null);
 const semEmoji = (texto) => texto.replace(/[^\p{L}\p{N}\s]/gu, "").trim();
@@ -109,40 +92,12 @@ async function coletar() {
   }
 }
 
-function normalizar(brutas) {
-  const vistos = new Set();
-  return brutas
-    .filter((o) => o.nome && o.preco > 0 && o.preco <= 100000 && !vistos.has(o.produto_id) && vistos.add(o.produto_id))
-    .map((o) => {
-      const tamanho = medida(o.nome);
-      return {
-        nome: o.nome,
-        preco: Math.round(o.preco * 100) / 100,
-        preco_antigo: o.preco_antigo && o.preco_antigo > o.preco ? Math.round(o.preco_antigo * 100) / 100 : null,
-        quantidade: tamanho?.quantidade ?? null,
-        unidade: tamanho?.unidade ?? null,
-        categoria: o.categoria,
-        observacao: null,
-        lojas_restricao: null,
-        confianca: 1,
-        valido_ate: o.valido_ate,
-        codigo_barras: o.codigo_barras,
-      };
-    });
-}
-
 if (require.main === module) {
   coletar()
     .then(async (brutas) => {
       const ofertas = normalizar(brutas);
       const validades = [...new Set(ofertas.map((o) => o.valido_ate).filter(Boolean))];
-      const saida = {
-        rede: "saoluiz",
-        loja: LOJA,
-        source: URL_LOJA,
-        valido_ate: validades.length === 1 ? validades[0] : null,
-        ofertas,
-      };
+      const saida = montarDados({ ofertas, rede: "saoluiz", loja: LOJA, source: URL_LOJA });
       const arquivo = process.argv[2];
       if (arquivo) await writeFile(arquivo, JSON.stringify(saida, null, 1));
       if (!arquivo) console.log(JSON.stringify(saida, null, 1));
@@ -157,4 +112,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { coletar, normalizar, medida, semEmoji };
+module.exports = { coletar, normalizar, medida, semEmoji, LOJA, URL_LOJA, CATEGORIAS };
