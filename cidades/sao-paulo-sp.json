@@ -1,0 +1,55 @@
+{
+  "cidade": "sao-paulo-sp",
+  "nome": "São Paulo",
+  "uf": "SP",
+  "base": "~/Downloads/Encartes/Sao Paulo",
+  "redes": [
+    {
+      "rede": "atacadao",
+      "nome": "Atacadao",
+      "adapter": "atacadao-encartes/download-encartes.js",
+      "loja": "aricanduva",
+      "loja_nome": "Aricanduva",
+      "fonte": "https://www.atacadao.com.br/loja/aricanduva",
+      "identificador_fonte": {
+        "slug": "aricanduva",
+        "storeId": 226
+      },
+      "hosts_permitidos": [
+        "apigw.cloud.carrefour.com.br"
+      ]
+    },
+    {
+      "rede": "assai",
+      "nome": "Assai",
+      "adapter": "assai-encartes/download-encartes.js",
+      "loja": "aricanduva",
+      "loja_nome": "Aricanduva",
+      "fonte": "https://www.assai.com.br/ofertas/sao-paulo/assai-aricanduva",
+      "identificador_fonte": {
+        "nid": "8169",
+        "eid": "24"
+      },
+      "hosts_permitidos": [
+        "d2q57q7k4hzryv.cloudfront.net"
+      ]
+    },
+    {
+      "rede": "violeta",
+      "nome": "Violeta",
+      "adapter": "violeta-encartes/download-encartes.js",
+      "loja": "vila-gomes",
+      "loja_nome": "Vila Gomes - Loja 01",
+      "bairro": "Vila Gomes",
+      "endereco": "Av. Embaixador Cavalcante de Lacerda, 112 - São Paulo - SP",
+      "fonte": "https://supermercadovioleta.com.br/tabloide/",
+      "identificador_fonte": {
+        "url": "https://supermercadovioleta.com.br/tabloide/",
+        "url_loja": "https://supermercadovioleta.com.br/lojas/"
+      },
+      "hosts_permitidos": [
+        "supermercadovioleta.com.br"
+      ]
+    }
+  ]
+}

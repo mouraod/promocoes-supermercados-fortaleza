@@ -1,0 +1,55 @@
+{
+  "cidade": "rio-de-janeiro-rj",
+  "nome": "Rio de Janeiro",
+  "uf": "RJ",
+  "base": "~/Downloads/Encartes/Rio de Janeiro",
+  "redes": [
+    {
+      "rede": "atacadao",
+      "nome": "Atacadao",
+      "adapter": "atacadao-encartes/download-encartes.js",
+      "loja": "bangu",
+      "loja_nome": "Bangu",
+      "fonte": "https://www.atacadao.com.br/loja/bangu",
+      "identificador_fonte": {
+        "slug": "bangu",
+        "storeId": 699
+      },
+      "hosts_permitidos": [
+        "apigw.cloud.carrefour.com.br"
+      ]
+    },
+    {
+      "rede": "assai",
+      "nome": "Assai",
+      "adapter": "assai-encartes/download-encartes.js",
+      "loja": "bangu",
+      "loja_nome": "Bangu",
+      "fonte": "https://www.assai.com.br/ofertas/rio-de-janeiro/assai-bangu",
+      "identificador_fonte": {
+        "nid": "100",
+        "eid": "18"
+      },
+      "hosts_permitidos": [
+        "d2q57q7k4hzryv.cloudfront.net"
+      ]
+    },
+    {
+      "rede": "guanabara",
+      "nome": "Guanabara",
+      "adapter": "guanabara-encartes/download-encartes.js",
+      "loja": "bangu",
+      "loja_nome": "Bangu",
+      "bairro": "Bangu",
+      "endereco": "Av. Ministro Ari Franco, 80 - Bangu, Rio de Janeiro - RJ",
+      "fonte": "https://www.supermercadosguanabara.com.br/encarte",
+      "identificador_fonte": {
+        "url": "https://www.supermercadosguanabara.com.br/encarte",
+        "url_loja": "https://www.supermercadosguanabara.com.br/lojas"
+      },
+      "hosts_permitidos": [
+        "www.supermercadosguanabara.com.br"
+      ]
+    }
+  ]
+}

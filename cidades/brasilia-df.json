@@ -1,0 +1,55 @@
+{
+  "cidade": "brasilia-df",
+  "nome": "Brasília",
+  "uf": "DF",
+  "base": "~/Downloads/Encartes/Brasilia",
+  "redes": [
+    {
+      "rede": "atacadao",
+      "nome": "Atacadao",
+      "adapter": "atacadao-encartes/download-encartes.js",
+      "loja": "brasilia-asa-norte",
+      "loja_nome": "Brasília Asa Norte",
+      "fonte": "https://www.atacadao.com.br/loja/brasilia-asa-norte",
+      "identificador_fonte": {
+        "slug": "brasilia-asa-norte",
+        "storeId": 61
+      },
+      "hosts_permitidos": [
+        "apigw.cloud.carrefour.com.br"
+      ]
+    },
+    {
+      "rede": "assai",
+      "nome": "Assai",
+      "adapter": "assai-encartes/download-encartes.js",
+      "loja": "brasilia-norte",
+      "loja_nome": "Brasilia Norte",
+      "fonte": "https://www.assai.com.br/ofertas/distrito-federal/assai-brasilia-norte",
+      "identificador_fonte": {
+        "nid": "23086",
+        "eid": "6"
+      },
+      "hosts_permitidos": [
+        "d2q57q7k4hzryv.cloudfront.net"
+      ]
+    },
+    {
+      "rede": "dona",
+      "nome": "Dona",
+      "adapter": "dona-encartes/download-encartes.js",
+      "loja": "asa-norte-303",
+      "loja_nome": "Asa Norte 303",
+      "bairro": "Asa Norte",
+      "endereco": "SHCN CL 303 BL B Loja 66 - Brasília - DF",
+      "fonte": "https://donafazbem.com.br/folheto/ofertas/",
+      "identificador_fonte": {
+        "url": "https://donafazbem.com.br/folheto/ofertas/",
+        "url_loja": "https://donafazbem.com.br/lojas/asa-norte-303/"
+      },
+      "hosts_permitidos": [
+        "donafazbem.com.br"
+      ]
+    }
+  ]
+}
