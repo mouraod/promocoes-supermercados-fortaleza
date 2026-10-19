@@ -265,14 +265,18 @@ function imprimirResumo(base, resultados) {
   console.log("Resumo:\n");
 
   let totalPaginas = 0;
+  let totalOfertas = 0;
   let ok = 0;
 
   for (const r of resultados) {
     const nome = r.nome.padEnd(nomeCol);
     if (r.ok && r.manifest) {
       totalPaginas += r.manifest.totalPaginas || 0;
+      totalOfertas += r.manifest.totalOfertas || 0;
       ok += 1;
-      console.log(`  ${nome}${r.manifest.totalEncartes} encartes | ${r.manifest.totalPaginas} páginas (${formatarContagem(r.manifest)})`);
+      // Rede sem encarte em imagem entrega só a lista de ofertas.
+      const ofertas = r.manifest.totalOfertas ? ` | ${r.manifest.totalOfertas} ofertas` : "";
+      console.log(`  ${nome}${r.manifest.totalEncartes} encartes | ${r.manifest.totalPaginas} páginas (${formatarContagem(r.manifest)})${ofertas}`);
     } else if (r.ok) {
       ok += 1;
       console.log(`  ${nome}OK (sem manifest.json pra detalhar)`);
@@ -282,7 +286,8 @@ function imprimirResumo(base, resultados) {
   }
 
   console.log("");
-  console.log(`  ${ok} de ${resultados.length} redes OK | ${totalPaginas} páginas | ${base}`);
+  const lista = totalOfertas ? ` | ${totalOfertas} ofertas` : "";
+  console.log(`  ${ok} de ${resultados.length} redes OK | ${totalPaginas} páginas${lista} | ${base}`);
 }
 
 // ─── main ─────────────────────────────────────────────────────────────────────
