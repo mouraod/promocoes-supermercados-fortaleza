@@ -40,8 +40,10 @@ async function fetchFlyers(slug, { fetch: buscar = fetch, hoje = todayISO() } = 
     throw new Error(`Estrutura de flyers não encontrada no __NEXT_DATA__ de ${url}`);
   }
 
+  // A loja lista teasers de campanha futura sem PDF (urlFinalDocument vazia).
   return storeInfo.flyers.filter((f) => {
     if (f.exclude === true) return false;
+    if (!f.urlFinalDocument) return false;
     if (!f.validity?.initial || !f.validity?.final) return false;
     return f.validity.final.slice(0, 10) >= hoje;
   });
