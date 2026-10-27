@@ -43,6 +43,15 @@ os encartes vigentes que encontra. O Center Box limita-se à seção vigente da
 página. O Atacadão usa a loja `fortaleza-aeroporto` por padrão. A Uniforça
 aceita `--dpi` para configurar a rasterização dos PDFs.
 
+## Redes de outras praças
+
+Duas redes só existem por cidade, fora do fluxo de Fortaleza e de `todos-encartes`:
+
+| Skill | Mercado | Praça | Como baixa |
+|---|---|---|---|
+| [`atakarejo-encartes`](./atakarejo-encartes) | Atakarejo | Salvador | HTML WordPress, PDF rasterizado |
+| [`hiperideal-encartes`](./hiperideal-encartes) | Hiperideal | Salvador | JSON embutido VTEX, PDF rasterizado |
+
 ## Instalar
 
 ```bash

@@ -45,6 +45,41 @@
       "hosts_permitidos": [
         "ofertasmateus.com"
       ]
+    },
+    {
+      "rede": "atakarejo",
+      "nome": "Atakarejo",
+      "adapter": "atakarejo-encartes/download-encartes.js",
+      "loja": "salvador-plataforma",
+      "loja_nome": "Salvador Plataforma",
+      "bairro": "Plataforma",
+      "endereco": "Av. Afrânio Peixoto, 60 - Plataforma, Salvador - BA, 40717-140",
+      "fonte": "https://atakarejo.com.br/cidades/salvador/",
+      "identificador_fonte": {
+        "cidade": "salvador",
+        "loja": "Plataforma",
+        "encarte": "https://atakarejo.com.br/cidades/salvador/"
+      },
+      "hosts_permitidos": [
+        "atakarejo.com.br"
+      ]
+    },
+    {
+      "rede": "hiperideal",
+      "nome": "Hiperideal",
+      "adapter": "hiperideal-encartes/download-encartes.js",
+      "loja": "lapa",
+      "loja_nome": "Lapa",
+      "bairro": "Tororó",
+      "endereco": "Av. Vale do Tororó, Estação da Lapa, s/n - Tororó, Salvador - BA, 40050-290",
+      "fonte": "https://www.hiperideal.com.br/especial/encartes",
+      "identificador_fonte": {
+        "url": "https://www.hiperideal.com.br/especial/encartes",
+        "encarte_loja": "Lapa"
+      },
+      "hosts_permitidos": [
+        "hiperideal.gsit.co"
+      ]
     }
   ]
 }
