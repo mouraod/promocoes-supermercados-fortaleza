@@ -1,0 +1,29 @@
+{
+  "storeId": 226,
+  "loja": "Aricanduva",
+  "slug": "aricanduva",
+  "cidade": "São Paulo",
+  "estado": "SP",
+  "flyers": [
+    {
+      "id": "10B7S4YeruT7mlcVnPvq0rhbm-mNDuFTG",
+      "validity": {
+        "initial": "2026-10-27T00:00:00Z",
+        "final": "2026-11-02T00:00:00Z"
+      },
+      "urlFinalDocument": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/?id=10B7S4YeruT7mlcVnPvq0rhbm-mNDuFTG",
+      "name": "Ofertããão Atacadão",
+      "exclude": false
+    },
+    {
+      "id": "1DZCjddhrFws1EoBjiAeRvj0nZNx0WQif",
+      "validity": {
+        "initial": "2026-11-02T00:00:00Z",
+        "final": "2026-11-08T00:00:00Z"
+      },
+      "urlFinalDocument": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/?id=1DZCjddhrFws1EoBjiAeRvj0nZNx0WQif",
+      "name": "Super Ofertas",
+      "exclude": false
+    }
+  ]
+}
