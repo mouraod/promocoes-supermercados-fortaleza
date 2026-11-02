@@ -85,6 +85,36 @@ test("filtra teaser sem PDF e excluído, mas preserva inválida só na revisão"
   );
 });
 
+test("legado mantém datas completas mas inválidas ou invertidas", async () => {
+  const hoje = "2026-10-18";
+  const misturada = {
+    ...loja,
+    flyers: [
+      { ...loja.flyers[0], validity: { initial: "2026-02-30T00:00:00Z", final: "2026-12-31T00:00:00Z" } },
+      { ...loja.flyers[0], validity: { initial: "2026-12-10T00:00:00Z", final: "2026-12-05T00:00:00Z" } },
+      { ...loja.flyers[0], validity: { initial: "2026-13-01T00:00:00Z", final: "2026-10-01T00:00:00Z" } },
+      { ...loja.flyers[0], validity: { initial: "2026-10-01T00:00:00Z", final: "2026-10-02T00:00:00Z" } },
+    ],
+  };
+  const legado = await descobrir({ loja: "aricanduva", hoje }, { fetch: resposta(misturada) });
+  assert.deepEqual(
+    legado.map((e) => e.meta.vigencia.ate),
+    ["2026-12-31", "2026-12-05"],
+  );
+  const revisao = await descobrir(
+    { loja: "aricanduva", hoje, revisao: true },
+    { fetch: resposta(misturada) },
+  );
+  assert.deepEqual(
+    revisao.map((e) => e.meta.vigencia),
+    [
+      { de: "2026-02-30", ate: "2026-12-31" },
+      { de: "2026-12-10", ate: "2026-12-05" },
+      { de: "2026-13-01", ate: "2026-10-01" },
+    ],
+  );
+});
+
 test("a revisão usa a data local informada pelo runner", async () => {
   const noLimite = {
     ...loja,

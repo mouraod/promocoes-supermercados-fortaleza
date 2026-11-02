@@ -78,9 +78,14 @@ async function fetchLoja(
   const flyers = storeInfo.flyers.filter((f) => {
     if (f.exclude === true) return false;
     if (!f.urlFinalDocument) return false;
-    const vigencia = vigenciaDe(f.validity);
-    if (!vigencia) return reterInvalidas;
-    return vigencia.ate >= hoje;
+    if (reterInvalidas) {
+      const vigencia = vigenciaDe(f.validity);
+      if (!vigencia) return true;
+      return vigencia.ate >= hoje;
+    }
+    // Legado: data completa vale pela comparação da data final, como antes da revisão.
+    if (!f.validity?.initial || !f.validity?.final) return false;
+    return f.validity.final.slice(0, 10) >= hoje;
   });
   return { loja, flyers };
 }
