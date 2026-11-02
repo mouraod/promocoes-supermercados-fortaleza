@@ -17,7 +17,17 @@ const LOJAS_FORTALEZA = [
   "fortaleza-osorio",
 ];
 
-async function fetchFlyers(slug, { fetch: buscar = fetch, hoje = todayISO() } = {}) {
+/** Identidade que a própria página devolve; o chamador confere contra a configuração. */
+function identidadeDaLoja(storeInfo) {
+  return {
+    storeId: storeInfo.storeId,
+    slug: storeInfo.slug,
+    cidade: storeInfo.cidade,
+    estado: storeInfo.estado,
+  };
+}
+
+async function fetchLoja(slug, { fetch: buscar = fetch, hoje = todayISO() } = {}) {
   const url = `${LOJA_BASE}/${slug}`;
   const response = await buscar(url, {
     headers: { "User-Agent": "Mozilla/5.0" },
@@ -40,17 +50,28 @@ async function fetchFlyers(slug, { fetch: buscar = fetch, hoje = todayISO() } = 
     throw new Error(`Estrutura de flyers não encontrada no __NEXT_DATA__ de ${url}`);
   }
 
+  const loja = identidadeDaLoja(storeInfo);
+  if (!loja.slug || loja.storeId == null || !loja.cidade || !loja.estado) {
+    throw new Error(`Identidade da loja ausente no __NEXT_DATA__ de ${url}`);
+  }
+
   // A loja lista teasers de campanha futura sem PDF (urlFinalDocument vazia).
-  return storeInfo.flyers.filter((f) => {
+  const flyers = storeInfo.flyers.filter((f) => {
     if (f.exclude === true) return false;
     if (!f.urlFinalDocument) return false;
     if (!f.validity?.initial || !f.validity?.final) return false;
     return f.validity.final.slice(0, 10) >= hoje;
   });
+  return { loja, flyers };
+}
+
+/** Chamada legada: continua devolvendo só os flyers. */
+async function fetchFlyers(slug, deps = {}) {
+  return (await fetchLoja(slug, deps)).flyers;
 }
 
 async function descobrir(args, deps) {
-  const flyers = await fetchFlyers(args.loja, deps);
+  const { loja, flyers } = await fetchLoja(args.loja, deps);
 
   let encartes = flyers;
   if (args.onlyNewest) {
@@ -68,6 +89,7 @@ async function descobrir(args, deps) {
           de: f.validity.initial.slice(0, 10),
           ate: f.validity.final.slice(0, 10),
         },
+        loja,
       },
     };
   });
@@ -120,4 +142,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { descobrir, fetchFlyers };
+module.exports = { descobrir, fetchFlyers, fetchLoja };

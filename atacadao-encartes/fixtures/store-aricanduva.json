@@ -1,0 +1,60 @@
+{
+  "storeId": 226,
+  "loja": "Aricanduva",
+  "slug": "aricanduva",
+  "endereco": "Av. Aricanduva",
+  "numero": "3600",
+  "bairro": "Vila Califórnia",
+  "cidade": "São Paulo",
+  "cep": "03490-000",
+  "estado": "SP",
+  "lat": "-23.55386451",
+  "long": "-46.52057049",
+  "flyers": [
+    {
+      "id": "1XEpiQ4RMO5wIEvkVJhzxYV-y4i0vL3Xi",
+      "idThumbnail": "1Ywxod0pI8pOvKLNUSBbYdnfZzEcnKTCr",
+      "responsible": "",
+      "validity": {
+        "initial": "2026-10-18T00:00:00Z",
+        "final": "2026-10-18T00:00:00Z"
+      },
+      "urlFinalDocument": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/?id=1XEpiQ4RMO5wIEvkVJhzxYV-y4i0vL3Xi",
+      "urlFinalDocumentThumbnail": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/thumbnail/?id=1Ywxod0pI8pOvKLNUSBbYdnfZzEcnKTCr",
+      "name": "Boa do Dia",
+      "exclude": false,
+      "disparo": true,
+      "prioridade": 162540
+    },
+    {
+      "id": "11lDcPhRH7xb-oZBnvZPmUiC1pkumeGQi",
+      "idThumbnail": "1wUT44gdenoZIgfXntxiXpdyDl25oo2dI",
+      "responsible": "",
+      "validity": {
+        "initial": "2026-10-13T00:00:00Z",
+        "final": "2026-10-19T00:00:00Z"
+      },
+      "urlFinalDocument": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/?id=11lDcPhRH7xb-oZBnvZPmUiC1pkumeGQi",
+      "urlFinalDocumentThumbnail": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/thumbnail/?id=1wUT44gdenoZIgfXntxiXpdyDl25oo2dI",
+      "name": "Ofertããão Atacadão",
+      "exclude": false,
+      "disparo": true,
+      "prioridade": 31070
+    },
+    {
+      "id": "1meUAC141-R_FT_AozbUvdGYC1hgVTafK",
+      "idThumbnail": "1MDNS9r9rMB98cz-Cy6nm-GF4_-nJdLxC",
+      "responsible": "",
+      "validity": {
+        "initial": "2026-10-12T00:00:00Z",
+        "final": "2026-10-18T00:00:00Z"
+      },
+      "urlFinalDocument": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/?id=1meUAC141-R_FT_AozbUvdGYC1hgVTafK",
+      "urlFinalDocumentThumbnail": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/thumbnail/?id=1MDNS9r9rMB98cz-Cy6nm-GF4_-nJdLxC",
+      "name": "Especial Dia das Crianças",
+      "exclude": false,
+      "disparo": true,
+      "prioridade": 1130
+    }
+  ]
+}
