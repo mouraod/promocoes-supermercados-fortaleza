@@ -27,7 +27,28 @@ function identidadeDaLoja(storeInfo) {
   };
 }
 
-async function fetchLoja(slug, { fetch: buscar = fetch, hoje = todayISO() } = {}) {
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Data de calendário real: 2026-02-30 não existe. */
+function dataReal(iso) {
+  if (!DATA_ISO.test(iso ?? "")) return false;
+  const [ano, mes, dia] = iso.split("-").map(Number);
+  const data = new Date(Date.UTC(ano, mes - 1, dia));
+  return data.getUTCFullYear() === ano && data.getUTCMonth() === mes - 1 && data.getUTCDate() === dia;
+}
+
+/** Semana completa só quando `de`/`ate` são datas reais e ordenadas. */
+function vigenciaDe(validity) {
+  const de = validity?.initial?.slice(0, 10) ?? null;
+  const ate = validity?.final?.slice(0, 10) ?? null;
+  if (!dataReal(de) || !dataReal(ate) || de > ate) return null;
+  return { de, ate };
+}
+
+async function fetchLoja(
+  slug,
+  { fetch: buscar = fetch, hoje = todayISO(), reterInvalidas = false } = {},
+) {
   const url = `${LOJA_BASE}/${slug}`;
   const response = await buscar(url, {
     headers: { "User-Agent": "Mozilla/5.0" },
@@ -51,16 +72,15 @@ async function fetchLoja(slug, { fetch: buscar = fetch, hoje = todayISO() } = {}
   }
 
   const loja = identidadeDaLoja(storeInfo);
-  if (!loja.slug || loja.storeId == null || !loja.cidade || !loja.estado) {
-    throw new Error(`Identidade da loja ausente no __NEXT_DATA__ de ${url}`);
-  }
 
   // A loja lista teasers de campanha futura sem PDF (urlFinalDocument vazia).
+  // Fora do caminho de revisão, mantém o filtro legado (só semana completa).
   const flyers = storeInfo.flyers.filter((f) => {
     if (f.exclude === true) return false;
     if (!f.urlFinalDocument) return false;
-    if (!f.validity?.initial || !f.validity?.final) return false;
-    return f.validity.final.slice(0, 10) >= hoje;
+    const vigencia = vigenciaDe(f.validity);
+    if (!vigencia) return reterInvalidas;
+    return vigencia.ate >= hoje;
   });
   return { loja, flyers };
 }
@@ -70,25 +90,38 @@ async function fetchFlyers(slug, deps = {}) {
   return (await fetchLoja(slug, deps)).flyers;
 }
 
-async function descobrir(args, deps) {
-  const { loja, flyers } = await fetchLoja(args.loja, deps);
+async function descobrir(args, deps = {}) {
+  const { loja, flyers } = await fetchLoja(args.loja, {
+    ...deps,
+    hoje: args.hoje ?? deps.hoje ?? todayISO(),
+    reterInvalidas: args.revisao === true,
+  });
 
   let encartes = flyers;
   if (args.onlyNewest) {
-    encartes = [flyers.reduce((a, b) => (a.validity.final > b.validity.final ? a : b))];
+    encartes = [
+      flyers.reduce((a, b) =>
+        (a.validity?.final ?? "") > (b.validity?.final ?? "") ? a : b,
+      ),
+    ];
   }
 
   return encartes.map((f) => {
     const name = f.name || "encarte";
+    const de = f.validity?.initial?.slice(0, 10) || "semdata";
+    const ate = f.validity?.final?.slice(0, 10) || "semdata";
     return {
-      slug: `${slugify(name)}-${vigenciaSlug(f.validity.initial, f.validity.final)}`,
+      slug: `${slugify(name)}-${vigenciaSlug(de, ate)}`,
       pdf: { url: f.urlFinalDocument, manter: true },
       meta: {
         name,
-        vigencia: {
-          de: f.validity.initial.slice(0, 10),
-          ate: f.validity.final.slice(0, 10),
-        },
+        vigencia:
+          f.validity?.initial || f.validity?.final
+            ? {
+                de: f.validity?.initial?.slice(0, 10) ?? null,
+                ate: f.validity?.final?.slice(0, 10) ?? null,
+              }
+            : null,
         loja,
       },
     };
