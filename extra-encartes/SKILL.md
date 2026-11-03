@@ -38,7 +38,7 @@ para publicação.
 
 ## Particularidades
 
-- O adapter aceita `onlyNewest`, que reduz a lista de encartes à campanha mais recente; o coletor de cidade ainda não repassa a flag.
+- O adapter aceita `onlyNewest`, que escolhe o início de vigência mais recente e preserva a ordem da fonte em caso de empate; o coletor de cidade ainda não repassa a flag. No Extra, o início informado é o dia consultado, então campanhas do mesmo dia empatam e a seleção segue a ordem da fonte.
 - O índice é compartilhado com o Pão de Açúcar apenas no formato; os hosts e
   os erros são separados por mercado.
 
