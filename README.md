@@ -45,12 +45,34 @@ aceita `--dpi` para configurar a rasterização dos PDFs.
 
 ## Redes de outras praças
 
-Duas redes só existem por cidade, fora do fluxo de Fortaleza e de `todos-encartes`:
+Estas redes existem por cidade, fora do fluxo de Fortaleza e de `todos-encartes`:
 
 | Skill | Mercado | Praça | Como baixa |
 |---|---|---|---|
 | [`atakarejo-encartes`](./atakarejo-encartes) | Atakarejo | Salvador | HTML WordPress, PDF rasterizado |
 | [`hiperideal-encartes`](./hiperideal-encartes) | Hiperideal | Salvador | JSON embutido VTEX, PDF rasterizado |
+
+### São Paulo
+
+Sete redes coletáveis de São Paulo capital e o Pão de Açúcar bloqueado,
+coletadas por `cidades/sao-paulo-sp.json` no helper de capitais. Cada uma tem
+SKILL.md com a identidade e a vigência que a própria fonte comprova.
+
+| Skill | Mercado | Como baixa | Identidade na fonte | Requer |
+|---|---|---|---|---|
+| [`atacadao-encartes`](./atacadao-encartes) | Atacadão (Aricanduva) | `__NEXT_DATA__`, PDF rasterizado | `storeId=226`, slug, cidade, UF | poppler |
+| [`assai-encartes`](./assai-encartes) | Assaí (Aricanduva) | Playwright, payload VTEX | `eid=24`/`nid=8169` | Playwright |
+| [`carrefour-encartes`](./carrefour-encartes) | Carrefour (Hiper Aricanduva) | GraphQL `SEARCH_STORE_FLYERS`, imagens GCS | `storeId=SPR` | nada |
+| [`extra-encartes`](./extra-encartes) | Extra (Grande São Paulo) | `campanhas.js` + FlipHTML5 | região | nada |
+| [`roldao-encartes`](./roldao-encartes) | Roldão (Nações Unidas) | HTML WordPress, imagens | não (folheto de rede) | nada |
+| [`chama-encartes`](./chama-encartes) | Chama (Água Rasa) | HTML WordPress, imagens | não (folheto de rede) | nada |
+| [`violeta-encartes`](./violeta-encartes) | Violeta (Vila Gomes) | galeria do post | não (revisão obrigatória) | nada |
+| [`paodeacucar-encartes`](./paodeacucar-encartes) | Pão de Açúcar (Grande SP) | `campanhas.js` + FlipHTML5 | região | bloqueado |
+
+Pão de Açúcar está escrito mas bloqueado: o índice de campanhas está parado e a
+única validade disponível é OCR corrompido; o adaptador falha em vez de inventar
+data. Roldão, Chama e Violeta são folhetos de rede — a loja de referência vem da
+configuração e exige revisão humana.
 
 ## Instalar
 
