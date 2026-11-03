@@ -50,6 +50,66 @@
       "hosts_permitidos": [
         "supermercadovioleta.com.br"
       ]
+    },
+    {
+      "rede": "extra",
+      "nome": "Extra",
+      "adapter": "extra-encartes/download-encartes.js",
+      "loja": "grande-sao-paulo",
+      "loja_nome": "Grande São Paulo (referência)",
+      "fonte": "https://folheteria.clubeextra.com.br/home/sites/mercado/index.html",
+      "identificador_fonte": {
+        "regiao": "Grande São Paulo"
+      },
+      "hosts_permitidos": [
+        "folheteria.clubeextra.com.br"
+      ]
+    },
+    {
+      "rede": "roldao",
+      "nome": "Roldao",
+      "adapter": "roldao-encartes/download-encartes.js",
+      "loja": "nacoes-unidas",
+      "loja_nome": "Nações Unidas",
+      "fonte": "https://roldao.com.br/ofertas/",
+      "identificador_fonte": {
+        "loja": "nacoes-unidas"
+      },
+      "hosts_permitidos": [
+        "roldao.com.br"
+      ]
+    },
+    {
+      "rede": "chama",
+      "nome": "Chama",
+      "adapter": "chama-encartes/download-encartes.js",
+      "loja": "agua-rasa",
+      "loja_nome": "Água Rasa",
+      "bairro": "Água Rasa",
+      "endereco": "Rua Barão de Penedo, 102 - São Paulo - SP",
+      "fonte": "https://www.grupochama.com.br/ofertas-do-chama-supermercados/",
+      "identificador_fonte": {
+        "loja": "agua-rasa"
+      },
+      "hosts_permitidos": [
+        "www.grupochama.com.br"
+      ]
+    },
+    {
+      "rede": "carrefour",
+      "nome": "Carrefour",
+      "adapter": "carrefour-encartes/download-encartes.js",
+      "loja": "hiper-aricanduva",
+      "loja_nome": "Hiper Aricanduva",
+      "fonte": "https://secure.mercado.carrefour.com.br/localizador-de-lojas",
+      "identificador_fonte": {
+        "storeId": "SPR",
+        "slug": "hiper-aricanduva"
+      },
+      "hosts_permitidos": [
+        "secure.mercado.carrefour.com.br",
+        "storage.googleapis.com"
+      ]
     }
   ]
 }
