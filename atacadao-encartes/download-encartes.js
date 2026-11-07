@@ -105,11 +105,14 @@ async function descobrirComEvidencia(args, deps = {}) {
 
   let encartes = flyers;
   if (args.onlyNewest) {
-    encartes = [
-      flyers.reduce((a, b) =>
-        (a.validity?.final ?? "") > (b.validity?.final ?? "") ? a : b,
-      ),
-    ];
+    // Lista vazia (fonte sem campanha) devolve vazio: o chamador decide pela evidência.
+    encartes = flyers.length
+      ? [
+          flyers.reduce((a, b) =>
+            (a.validity?.final ?? "") > (b.validity?.final ?? "") ? a : b,
+          ),
+        ]
+      : [];
   }
 
   const lista = encartes.map((f) => {
