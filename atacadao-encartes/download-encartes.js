@@ -87,7 +87,8 @@ async function fetchLoja(
     if (!f.validity?.initial || !f.validity?.final) return false;
     return f.validity.final.slice(0, 10) >= hoje;
   });
-  return { loja, flyers };
+  // Quantidade bruta na fonte: o coletor só aceita "sem campanha" com ela igual a 0.
+  return { loja, flyers, quantidadeFlyersNaFonte: storeInfo.flyers.length };
 }
 
 /** Chamada legada: continua devolvendo só os flyers. */
@@ -95,8 +96,8 @@ async function fetchFlyers(slug, deps = {}) {
   return (await fetchLoja(slug, deps)).flyers;
 }
 
-async function descobrir(args, deps = {}) {
-  const { loja, flyers } = await fetchLoja(args.loja, {
+async function descobrirComEvidencia(args, deps = {}) {
+  const { loja, flyers, quantidadeFlyersNaFonte } = await fetchLoja(args.loja, {
     ...deps,
     hoje: args.hoje ?? deps.hoje ?? todayISO(),
     reterInvalidas: args.revisao === true,
@@ -104,14 +105,17 @@ async function descobrir(args, deps = {}) {
 
   let encartes = flyers;
   if (args.onlyNewest) {
-    encartes = [
-      flyers.reduce((a, b) =>
-        (a.validity?.final ?? "") > (b.validity?.final ?? "") ? a : b,
-      ),
-    ];
+    // Lista vazia (fonte sem campanha) devolve vazio: o chamador decide pela evidência.
+    encartes = flyers.length
+      ? [
+          flyers.reduce((a, b) =>
+            (a.validity?.final ?? "") > (b.validity?.final ?? "") ? a : b,
+          ),
+        ]
+      : [];
   }
 
-  return encartes.map((f) => {
+  const lista = encartes.map((f) => {
     const name = f.name || "encarte";
     const de = f.validity?.initial?.slice(0, 10) || "semdata";
     const ate = f.validity?.final?.slice(0, 10) || "semdata";
@@ -131,6 +135,11 @@ async function descobrir(args, deps = {}) {
       },
     };
   });
+  return { encartes: lista, evidenciaFonte: { loja, quantidadeFlyersNaFonte } };
+}
+
+async function descobrir(args, deps = {}) {
+  return (await descobrirComEvidencia(args, deps)).encartes;
 }
 
 function ajuda() {
@@ -180,4 +189,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { descobrir, fetchFlyers, fetchLoja };
+module.exports = { descobrir, descobrirComEvidencia, fetchFlyers, fetchLoja };

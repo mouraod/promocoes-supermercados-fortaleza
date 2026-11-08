@@ -1,2 +1,3 @@
 "use strict";
-module.exports = { descobrir: require("../lib/encartes-capitais").violeta };
+const { violeta, violetaComEvidencia } = require("../lib/encartes-capitais");
+module.exports = { descobrir: violeta, descobrirComEvidencia: violetaComEvidencia };
