@@ -1,2 +1,6 @@
 "use strict";
-module.exports = { descobrir: require("../lib/encartes-sp").roldao };
+const { descobrirComEvidencia } = require("../lib/roldao");
+module.exports = {
+  descobrirComEvidencia,
+  descobrir: async (...args) => (await descobrirComEvidencia(...args)).encartes,
+};
