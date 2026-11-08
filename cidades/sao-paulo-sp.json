@@ -17,7 +17,8 @@
       },
       "hosts_permitidos": [
         "apigw.cloud.carrefour.com.br"
-      ]
+      ],
+      "rotina": true
     },
     {
       "rede": "assai",
@@ -32,7 +33,8 @@
       },
       "hosts_permitidos": [
         "d2q57q7k4hzryv.cloudfront.net"
-      ]
+      ],
+      "rotina": true
     },
     {
       "rede": "violeta",
@@ -45,11 +47,17 @@
       "fonte": "https://supermercadovioleta.com.br/tabloide/",
       "identificador_fonte": {
         "url": "https://supermercadovioleta.com.br/tabloide/",
-        "url_loja": "https://supermercadovioleta.com.br/lojas/"
+        "url_loja": "https://supermercadovioleta.com.br/lojas/",
+        "endereco_contem": [
+          "Cavalcante de Lacerda",
+          "112"
+        ],
+        "loja_contem": "Vila Gomes"
       },
       "hosts_permitidos": [
         "supermercadovioleta.com.br"
-      ]
+      ],
+      "rotina": true
     },
     {
       "rede": "extra",
