@@ -71,7 +71,8 @@
       },
       "hosts_permitidos": [
         "folheteria.clubeextra.com.br"
-      ]
+      ],
+      "rotina": true
     },
     {
       "rede": "roldao",
@@ -85,7 +86,8 @@
       },
       "hosts_permitidos": [
         "roldao.com.br"
-      ]
+      ],
+      "rotina": true
     },
     {
       "rede": "chama",
@@ -101,7 +103,8 @@
       },
       "hosts_permitidos": [
         "www.grupochama.com.br"
-      ]
+      ],
+      "rotina": true
     },
     {
       "rede": "carrefour",
@@ -117,7 +120,8 @@
       "hosts_permitidos": [
         "secure.mercado.carrefour.com.br",
         "storage.googleapis.com"
-      ]
+      ],
+      "rotina": true
     }
   ]
 }

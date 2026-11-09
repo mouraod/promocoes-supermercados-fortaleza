@@ -1,2 +1,3 @@
 "use strict";
-module.exports = { descobrir: require("../lib/encartes-capitais").hiperideal };
+const capitais = require("../lib/encartes-capitais");
+module.exports = { descobrir: capitais.hiperideal, descobrirComEvidencia: capitais.hiperidealComEvidencia };

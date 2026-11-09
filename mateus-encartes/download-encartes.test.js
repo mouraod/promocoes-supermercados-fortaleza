@@ -70,3 +70,29 @@ test("listarEncartes usa UF do argumento e cidade/marca do cadastro da loja", as
   ]);
   await assert.rejects(listarEncartes("mix-x", "BA", buscar), /--uf/);
 });
+
+test("identidadeDaLoja lê município e UF do endereço do cadastro real de 09/11/2026", () => {
+  const { identidadeDaLoja } = require("./download-encartes");
+  const fs = require("node:fs");
+  const loja = JSON.parse(fs.readFileSync(`${__dirname}/fixtures/loja-mix-salvador-norte-shopping-2026-11-09.json`, "utf8")).data;
+  const identidade = identidadeDaLoja(loja);
+  assert.deepEqual([identidade.idloja, identidade.municipio, identidade.uf],
+    ["mix-salvador-norte-shopping", "Salvador", "BA"]);
+  assert.match(identidade.nome_exibicao, /Norte Shopping/);
+  assert.equal(identidadeDaLoja({ ...loja, endereco: "sem formato" }).municipio, null);
+});
+
+test("descobrirComEvidencia devolve os mesmos encartes de descobrir e a quantidade em vigor", async () => {
+  const fs = require("node:fs");
+  const { descobrirComEvidencia } = require("./download-encartes");
+  const lerJson = (n) => fs.readFileSync(`${__dirname}/fixtures/${n}-mix-salvador-norte-shopping-2026-11-09.json`, "utf8");
+  const buscar = async (url) => {
+    const corpo = new URL(url).searchParams.get("endpoint").startsWith("/lojas/") ? lerJson("loja") : lerJson("encartes");
+    return { ok: true, json: async () => JSON.parse(corpo) };
+  };
+  const r = await descobrirComEvidencia({ loja: "mix-salvador-norte-shopping", uf: "ba", hoje: "2026-11-09" }, { fetch: buscar });
+  assert.equal(r.encartes.length, 4);
+  assert.equal(r.evidenciaFonte.quantidadeFlyersNaFonte, 4);
+  const depois = await descobrirComEvidencia({ loja: "mix-salvador-norte-shopping", uf: "ba", hoje: "2026-12-01" }, { fetch: buscar });
+  assert.deepEqual([depois.encartes.length, depois.evidenciaFonte.quantidadeFlyersNaFonte], [0, 0]);
+});
