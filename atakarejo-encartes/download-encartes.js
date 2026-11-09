@@ -1,2 +1,3 @@
 "use strict";
-module.exports = { descobrir: require("../lib/encartes-capitais").atakarejo };
+const capitais = require("../lib/encartes-capitais");
+module.exports = { descobrir: capitais.atakarejo, descobrirComEvidencia: capitais.atakarejoComEvidencia };

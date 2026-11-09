@@ -31,7 +31,7 @@ async function consultar(endpoint, buscar = fetch) {
 
 // Cidade e marca vêm do cadastro oficial da loja; a UF não vem, por isso é
 // argumento (padrão ce). Ex.: Salvador aparece como "salvador-" na API.
-async function listarEncartes(loja, uf = "ce", buscar = fetch) {
+async function listarEncartesComLoja(loja, uf = "ce", buscar = fetch) {
   if (!/^[a-z0-9-]+$/i.test(loja)) throw new Error("Slug de loja Mateus inválido");
   if (!/^[a-z]{2}$/.test(uf)) throw new Error("--uf deve ter 2 letras minúsculas");
   const dadosLoja = await consultar(`/lojas/${loja}`, buscar);
@@ -43,7 +43,23 @@ async function listarEncartes(loja, uf = "ce", buscar = fetch) {
     buscar,
   );
   if (!Array.isArray(itens)) throw new Error("Mateus: lista de encartes inválida");
-  return itens;
+  return { dadosLoja, itens };
+}
+
+async function listarEncartes(loja, uf = "ce", buscar = fetch) {
+  return (await listarEncartesComLoja(loja, uf, buscar)).itens;
+}
+
+// Município e UF saem do endereço do cadastro ("..., Salvador - BA, 41510-000").
+function identidadeDaLoja(dadosLoja) {
+  const fim = /,\s*([^,]+?)\s+-\s+([A-Za-z]{2})\s*,\s*\d{5}-?\d{3}\s*$/.exec(String(dadosLoja.endereco ?? ""));
+  return {
+    idloja: dadosLoja.idloja,
+    nome_exibicao: dadosLoja.nome_exibicao ?? null,
+    endereco: dadosLoja.endereco ?? null,
+    municipio: fim ? fim[1].trim() : null,
+    uf: fim ? fim[2].toUpperCase() : null,
+  };
 }
 
 function mapearEncartes(data, hoje) {
@@ -74,6 +90,19 @@ function mapearEncartes(data, hoje) {
 async function descobrir(args, { fetch: buscar = fetch } = {}) {
   const data = await listarEncartes(args.loja, args.uf ?? "ce", buscar);
   return mapearEncartes(data, todayISO());
+}
+
+// Mesmos encartes de `descobrir`, mais a evidência da loja lida na fonte. A quantidade
+// é a de encartes em vigor no cadastro, antes de descartar os sem PDF.
+async function descobrirComEvidencia(args, { fetch: buscar = fetch } = {}) {
+  const { dadosLoja, itens } = await listarEncartesComLoja(args.loja, args.uf ?? "ce", buscar);
+  const hoje = args.hoje ?? todayISO();
+  const vigentes = itens.filter((i) => !i.inicio || !i.validade ||
+    (i.inicio.slice(0, 10) <= hoje && hoje <= i.validade.slice(0, 10))).length;
+  return {
+    encartes: mapearEncartes(itens, hoje),
+    evidenciaFonte: { loja: identidadeDaLoja(dadosLoja), quantidadeFlyersNaFonte: vigentes },
+  };
 }
 
 function ajuda() {
@@ -124,4 +153,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { descobrir, listarEncartes, mapearEncartes };
+module.exports = { descobrir, descobrirComEvidencia, listarEncartes, listarEncartesComLoja, identidadeDaLoja, mapearEncartes };

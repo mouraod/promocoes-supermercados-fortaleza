@@ -4,6 +4,7 @@
   "redes": [
     {
       "rede": "atacadao",
+      "rotina": true,
       "nome": "Atacadao",
       "adapter": "atacadao-encartes/download-encartes.js",
       "loja": "salvador-iguatemi",
@@ -18,6 +19,7 @@
     },
     {
       "rede": "assai",
+      "rotina": true,
       "nome": "Assai",
       "adapter": "assai-encartes/download-encartes.js",
       "loja": "salvador-paralela",
@@ -32,6 +34,7 @@
     },
     {
       "rede": "mateus",
+      "rotina": true,
       "nome": "Mateus",
       "adapter": "mateus-encartes/download-encartes.js",
       "loja": "mix-salvador-norte-shopping",
@@ -48,6 +51,7 @@
     },
     {
       "rede": "atakarejo",
+      "rotina": true,
       "nome": "Atakarejo",
       "adapter": "atakarejo-encartes/download-encartes.js",
       "loja": "salvador-plataforma",
@@ -66,6 +70,7 @@
     },
     {
       "rede": "hiperideal",
+      "rotina": true,
       "nome": "Hiperideal",
       "adapter": "hiperideal-encartes/download-encartes.js",
       "loja": "vitoria",
