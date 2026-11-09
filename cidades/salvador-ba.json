@@ -5,6 +5,7 @@
     {
       "rede": "atacadao",
       "rotina": true,
+      "nomes_loja": ["Iguatemi"],
       "nome": "Atacadao",
       "adapter": "atacadao-encartes/download-encartes.js",
       "loja": "salvador-iguatemi",
@@ -20,6 +21,7 @@
     {
       "rede": "assai",
       "rotina": true,
+      "nomes_loja": ["Paralela"],
       "nome": "Assai",
       "adapter": "assai-encartes/download-encartes.js",
       "loja": "salvador-paralela",
@@ -35,6 +37,7 @@
     {
       "rede": "mateus",
       "rotina": true,
+      "nomes_loja": ["Norte Shopping"],
       "nome": "Mateus",
       "adapter": "mateus-encartes/download-encartes.js",
       "loja": "mix-salvador-norte-shopping",
@@ -52,6 +55,7 @@
     {
       "rede": "atakarejo",
       "rotina": true,
+      "nomes_loja": ["Salvador", "Plataforma"],
       "nome": "Atakarejo",
       "adapter": "atakarejo-encartes/download-encartes.js",
       "loja": "salvador-plataforma",
@@ -71,6 +75,7 @@
     {
       "rede": "hiperideal",
       "rotina": true,
+      "nomes_loja": ["Vitória"],
       "nome": "Hiperideal",
       "adapter": "hiperideal-encartes/download-encartes.js",
       "loja": "vitoria",
