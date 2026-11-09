@@ -76,6 +76,7 @@
       "rede": "hiperideal",
       "rotina": true,
       "nomes_loja": ["Vitória"],
+      "homonimos_loja": ["Vitória da Conquista"],
       "nome": "Hiperideal",
       "adapter": "hiperideal-encartes/download-encartes.js",
       "loja": "vitoria",
