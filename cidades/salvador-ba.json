@@ -86,7 +86,12 @@
       "identificador_fonte": {
         "url": "https://www.hiperideal.com.br/especial/encartes",
         "encarte_loja": "Vitória",
-        "abrangencia": "todas as unidades exceto Lapa e lojas autônomas"
+        "abrangencia": "todas as unidades exceto Lapa e lojas autônomas",
+        "abrangencia_declarada": {
+          "texto": "/especial/encartes vale para todas as unidades, exceto Lapa e lojas autônomas; a fonte não expõe a loja",
+          "decidido_por": "Davi",
+          "em": "2026-11-09"
+        }
       },
       "hosts_permitidos": [
         "hiperideal.gsit.co"
