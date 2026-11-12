@@ -11,26 +11,40 @@ const { baixarEncartes, parsearArgs, todayISO, vigenciaSlug } = require("../lib/
 const BOOKLETS_URL = "https://loja.superdopovo.com.br/booklets";
 const API_PATH = "/api/v1/booklets"; // shop id 24 vai embutido na URL, ex: /api/v1/booklets/24
 
-async function fetchBookletsPayload() {
+// A API só responde depois que o JS do site obtém o JWT; com muitas redes
+// baixando em paralelo isso passou de 30 s (12/11/2026). Tenta duas vezes,
+// cada uma com navegador novo e 90 s de espera.
+const TENTATIVAS_PAYLOAD = 2;
+const ESPERA_API_MS = 90000;
+
+async function lerBookletsPayloadUmaVez() {
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
-
-  const responsePromise = page.waitForResponse(
-    (res) => res.url().includes(API_PATH),
-    { timeout: 30000 }
-  );
-
-  await page.goto(BOOKLETS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
-
-  let payload = null;
   try {
+    const page = await browser.newPage();
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes(API_PATH),
+      { timeout: ESPERA_API_MS }
+    );
+    responsePromise.catch(() => {}); // evita rejeição solta se o goto falhar antes
+    await page.goto(BOOKLETS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
     const res = await responsePromise;
-    payload = await res.json();
+    return await res.json();
   } finally {
     await browser.close();
   }
+}
 
-  return payload;
+async function fetchBookletsPayload() {
+  let ultimoErro;
+  for (let i = 1; i <= TENTATIVAS_PAYLOAD; i++) {
+    try {
+      return await lerBookletsPayloadUmaVez();
+    } catch (error) {
+      ultimoErro = error;
+      if (i < TENTATIVAS_PAYLOAD) console.error(`superdopovo: tentativa ${i} falhou (${error.message.split("\n")[0]}); tentando de novo`);
+    }
+  }
+  throw ultimoErro;
 }
 
 function folhasDoEncarte(encarte) {
