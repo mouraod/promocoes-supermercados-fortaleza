@@ -41,6 +41,7 @@ async function main() {
     aceitas: ["loja", "dpi", "sem-reuso"], padroes: { loja: "afogados", base: path.join(os.homedir(), "Downloads/Encartes/Recife") },
     ajuda: "Novo: --loja afogados --base <raiz Recife> --dpi 200 --sem-reuso",
   });
+  // Rede local de uma cidade só (Recife): a praça é parte da identidade do adapter, não lista de cidades.
   await baixarEncartes({
     rede: "NovoAtacarejo", source: `https://${HOST}/pe/recife/${args.loja}`,
     descobrir, args, hostsPermitidos: [HOST], extra: { cidade: "recife-pe", mercado: "novo-atacarejo", loja: args.loja },
