@@ -62,7 +62,7 @@ SKILL.md com a identidade e a vigência que a própria fonte comprova.
 |---|---|---|---|---|
 | [`atacadao-encartes`](./atacadao-encartes) | Atacadão (Aricanduva) | `__NEXT_DATA__`, PDF rasterizado | `storeId=226`, slug, cidade, UF | poppler |
 | [`assai-encartes`](./assai-encartes) | Assaí (Aricanduva) | Playwright, payload VTEX | `eid=24`/`nid=8169` | Playwright |
-| [`carrefour-encartes`](./carrefour-encartes) | Carrefour (Hiper Aricanduva) | GraphQL `SEARCH_STORE_FLYERS`, imagens GCS | `storeId=SPR` | nada |
+| [`carrefour-encartes`](./carrefour-encartes) | Carrefour (Hiper Aricanduva) | GraphQL `SEARCH_STORE_FLYERS`, imagens GCS | `storeId=SPR` | `poppler` (só quando uma página vem como PDF) |
 | [`extra-encartes`](./extra-encartes) | Extra (Grande São Paulo) | `campanhas.js` + FlipHTML5 | região | nada |
 | [`roldao-encartes`](./roldao-encartes) | Roldão (Nações Unidas) | HTML WordPress, imagens | não (folheto de rede) | nada |
 | [`chama-encartes`](./chama-encartes) | Chama (Água Rasa) | HTML WordPress, imagens | não (folheto de rede) | nada |
