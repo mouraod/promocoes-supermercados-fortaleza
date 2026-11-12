@@ -35,6 +35,10 @@ real conferida (dia/mês inválido falha).
 
 - O bucket do Google Cloud responde `application/octet-stream` para JPEG; o
   pipeline aceita esse tipo e decide pelo magic number da imagem.
+- Em 12/11/2026 a página 10 da revista de Natal (`...-0010.jpeg`) veio como
+  PDF de uma página sob nome `.jpeg`. O pipeline rasteriza (200 dpi, poppler)
+  só PDF real de exatamente uma página; HTML, lixo e PDF de várias páginas
+  continuam falhando como "Imagem inválida".
 - A campanha DROGARIA aparece na mesma resposta. Ela não é folheto de
   supermercado: fica fora do catálogo até decisão explícita.
 - O adapter aceita `onlyNewest`, que reduz a lista de encartes à campanha mais recente; o coletor de cidade ainda não repassa a flag.
