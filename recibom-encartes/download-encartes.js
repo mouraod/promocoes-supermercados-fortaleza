@@ -45,6 +45,7 @@ async function main() {
   const args = await parsearArgs(process.argv.slice(2), {
     aceitas: ["sem-reuso"], padroes: { base: path.join(os.homedir(), "Downloads/Encartes/Recife") }, ajuda: "Recibom: --base <raiz Recife> --sem-reuso; validade exige leitura visual do rodapé",
   });
+  // Rede local de uma cidade só (Recife): a praça é parte da identidade do adapter, não lista de cidades.
   await baixarEncartes({
     rede: "Recibom", source: SOURCE, descobrir, args, hostsPermitidos: [HOST],
     extra: { cidade: "recife-pe", mercado: "recibom", loja: "torre" },

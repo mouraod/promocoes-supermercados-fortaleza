@@ -90,6 +90,7 @@ async function baixarLista(args, agora = new Date()) {
   const { destino: pasta } = await gravarListaDeOfertas({
     destino,
     dados: montarDados({ ofertas, rede: "saoluiz", loja: LOJA, source: URL_LOJA }),
+    // Rede local de uma cidade só (Fortaleza): a praça é parte da identidade do adapter.
     manifest: { rede: "SaoLuiz", mercado: "saoluiz", cidade: "fortaleza-ce", source: URL_LOJA },
     agora,
   });

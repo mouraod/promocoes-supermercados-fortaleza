@@ -1,5 +1,7 @@
 {
   "cidade": "salvador-ba",
+  "nome": "Salvador",
+  "uf": "BA",
   "faixas_vigencia": true,
   "base": "~/Downloads/Encartes/Salvador",
   "redes": [
