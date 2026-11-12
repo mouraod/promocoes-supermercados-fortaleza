@@ -1,5 +1,6 @@
 {
   "cidade": "salvador-ba",
+  "faixas_vigencia": true,
   "base": "~/Downloads/Encartes/Salvador",
   "redes": [
     {
@@ -20,6 +21,7 @@
     },
     {
       "rede": "assai",
+      "omitir_a_partir_de": true,
       "rotina": true,
       "nomes_loja": ["Paralela"],
       "nome": "Assai",

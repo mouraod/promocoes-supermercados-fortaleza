@@ -1,5 +1,6 @@
 {
   "cidade": "sao-paulo-sp",
+  "faixas_vigencia": true,
   "nome": "São Paulo",
   "uf": "SP",
   "base": "~/Downloads/Encartes/Sao Paulo",
@@ -22,6 +23,7 @@
     },
     {
       "rede": "assai",
+      "omitir_a_partir_de": true,
       "nome": "Assai",
       "adapter": "assai-encartes/download-encartes.js",
       "loja": "aricanduva",
