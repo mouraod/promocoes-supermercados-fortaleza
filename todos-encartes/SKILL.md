@@ -57,6 +57,15 @@ individual), nunca de uma varredura da pasta mais recente. Rede que falha sai
 com `ok: false`, `pasta_download: null` e `erro`; o comando termina com código
 1, mas imprime o resultado completo de todas as redes.
 
+Rede que falha também traz a causa, para ninguém precisar abrir o terminal:
+`{"rede":"guara","ok":false,"pasta_download":null,"erro":"saiu com código 1","causa":"navegador_ausente","erro_detalhe":"...","log":{"stderr":".../Guara/16-Novembro/stderr.txt","downloads":".../Guara/16-Novembro/downloads.jsonl"}}`.
+`causa` é `navegador_ausente`, `tempo_esgotado`, `http_<status>`, `rede` ou `outro`;
+`erro_detalhe` é a última linha do stderr, sem URL, com até 200 caracteres.
+O `stderr.txt` (stderr completo da rede) e o `downloads.jsonl` (uma linha por
+requisição: `ts, rede, etapa, url, status, bytes, ms, tentativa, erro`) ficam na
+pasta da rodada da rede, só no disco local; `downloads` é `null` se a rede
+falhou antes de qualquer requisição.
+
 O Mercadão aceita `--base` e `--sem-reuso`: o orquestrador não repassa pra ele `--only-newest`, `--dpi` nem `--all`, porque o downloader dele não tem essas opções.
 
 O Guará aceita `--base`, `--only-newest` e `--sem-reuso`, mas não `--dpi` nem `--all` (sem rasterização de PDF e sem filtro de vigência).

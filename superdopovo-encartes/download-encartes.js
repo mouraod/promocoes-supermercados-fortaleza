@@ -7,6 +7,7 @@
 
 const { chromium } = require("playwright");
 const { baixarEncartes, parsearArgs, todayISO, vigenciaSlug } = require("../lib/pipeline");
+const log = require("../lib/log-requisicoes");
 
 const BOOKLETS_URL = "https://loja.superdopovo.com.br/booklets";
 const API_PATH = "/api/v1/booklets"; // shop id 24 vai embutido na URL, ex: /api/v1/booklets/24
@@ -17,7 +18,7 @@ const API_PATH = "/api/v1/booklets"; // shop id 24 vai embutido na URL, ex: /api
 const TENTATIVAS_PAYLOAD = 2;
 const ESPERA_API_MS = 90000;
 
-async function lerBookletsPayloadUmaVez() {
+async function lerBookletsPayloadUmaVez(tentativa = 1) {
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
@@ -26,9 +27,14 @@ async function lerBookletsPayloadUmaVez() {
       { timeout: ESPERA_API_MS }
     );
     responsePromise.catch(() => {}); // evita rejeição solta se o goto falhar antes
-    await page.goto(BOOKLETS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
+    const inicio = performance.now();
+    const resposta = await page.goto(BOOKLETS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
+    log.registrar({ etapa: "descoberta", url: BOOKLETS_URL, status: resposta?.status() ?? null, ms: performance.now() - inicio, tentativa });
     const res = await responsePromise;
-    return await res.json();
+    const corpo = await res.body();
+    // Status, bytes e ms (desde o goto) da resposta da API de encartes.
+    log.registrar({ etapa: "descoberta", url: res.url(), status: res.status(), bytes: corpo.length, ms: performance.now() - inicio, tentativa });
+    return JSON.parse(corpo.toString("utf8"));
   } finally {
     await browser.close();
   }
@@ -38,9 +44,10 @@ async function fetchBookletsPayload() {
   let ultimoErro;
   for (let i = 1; i <= TENTATIVAS_PAYLOAD; i++) {
     try {
-      return await lerBookletsPayloadUmaVez();
+      return await lerBookletsPayloadUmaVez(i);
     } catch (error) {
       ultimoErro = error;
+      log.registrar({ etapa: "descoberta", url: BOOKLETS_URL, tentativa: i, erro: error.message.split("\n")[0] });
       if (i < TENTATIVAS_PAYLOAD) console.error(`superdopovo: tentativa ${i} falhou (${error.message.split("\n")[0]}); tentando de novo`);
     }
   }
