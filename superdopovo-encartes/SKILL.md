@@ -36,6 +36,8 @@ Saída: `~/Downloads/Encartes/SuperDoPovo/DD-Mês/`
    - Encartes sem PDF e sem `sheets`/`links` são pulados com aviso, sem quebrar o script.
 5. Pula arquivos já existentes (idempotente por página)
 6. Grava `manifest.json` com rede, data, dpi, vigência e fonte (`pdf` ou `sheets`) de cada encarte
+7. Grava o payload bruto da API em `fonte.json` na pasta da rodada. Se a API não responder nas duas tentativas (2 × 90 s), usa o `fonte.json` mais recente com até 7 dias, só com encartes de `end >= hoje` (nunca reaproveita vencido, nem com `--all`), baixa as páginas direto do CDN e marca `fonte_descoberta: "reserva:<DD-Mês>"` em cada encarte do manifest (`"api"` quando a API respondeu). Sem reserva vigente, falha com o erro original.
+8. Cada requisição (descoberta, páginas, PDFs) vira uma linha em `downloads.jsonl`, na mesma pasta, só no disco local
 
 ### Por que PDF em vez das imagens prontas (`sheets`)
 
@@ -51,6 +53,8 @@ Downloads/Encartes/SuperDoPovo/16-Julho/
     1602-17-a-23-07-pagina-01.jpeg  (via sheets, sem PDF disponível)
     ...
   manifest.json
+  fonte.json
+  downloads.jsonl
 ```
 
 Nome do arquivo: `<id>-<vigência>-pagina-NN.<ext>`. O campo `name` da API (nome de arquivo cru, tipo "WhatsApp Image 2026-07-09 at 14.49.17.jpeg") é ignorado — vigência (`start`/`end`) é mais confiável e informativo.
