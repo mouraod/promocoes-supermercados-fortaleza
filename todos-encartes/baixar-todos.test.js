@@ -538,3 +538,108 @@ test("rede que dá certo não ganha causa nem log no JSON", async () => {
   assert.deepEqual(Object.keys(resumoJson(stdout).redes[0]), ["rede", "ok", "pasta_download", "erro"]);
   await fs.rm(root, { recursive: true, force: true });
 });
+
+// ─── CR-03: pré-checagem do navegador (sem instalar nada de verdade) ─────────
+
+const { checarNavegadores, garantirNavegador, lerExecutavel, navegadorPresente } = require("./baixar-todos");
+
+const REDE_NAV = { nome: "Guara", slug: "guara", pasta: "guara-encartes", deps: { playwright: true } };
+
+function silenciar(fn) {
+  const original = console.log;
+  console.log = () => {};
+  return Promise.resolve(fn()).finally(() => { console.log = original; });
+}
+
+test("navegador presente: não instala", async () => {
+  const instalacoes = [];
+  const r = await silenciar(() => garantirNavegador(REDE_NAV, {
+    root: "/raiz",
+    executavel: async () => "/cache/chrome",
+    existe: async (c) => c === "/cache/chrome",
+    instalar: async (pasta) => { instalacoes.push(pasta); },
+  }));
+  assert.deepEqual(r, { ok: true, instalado: false });
+  assert.deepEqual(instalacoes, []);
+});
+
+test("navegador ausente: instala uma vez na pasta da rede e confere de novo", async () => {
+  const instalacoes = [];
+  let instalado = false;
+  const r = await silenciar(() => garantirNavegador(REDE_NAV, {
+    root: "/raiz",
+    executavel: async () => "/cache/chrome",
+    existe: async () => instalado,
+    instalar: async (pasta) => { instalacoes.push(pasta); instalado = true; },
+  }));
+  assert.deepEqual(r, { ok: true, instalado: true });
+  assert.deepEqual(instalacoes, [path.join("/raiz", "guara-encartes")]);
+});
+
+test("continua ausente depois de instalar: navegador_ausente com o comando exato", async () => {
+  let instalacoes = 0;
+  const r = await silenciar(() => garantirNavegador(REDE_NAV, {
+    root: "/raiz",
+    executavel: async () => "/cache/chrome",
+    existe: async () => false,
+    instalar: async () => { instalacoes += 1; },
+  }));
+  assert.equal(instalacoes, 1, "tenta instalar uma única vez");
+  assert.equal(r.ok, false);
+  assert.equal(r.causa, "navegador_ausente");
+  assert.ok(r.erro_detalhe.length <= 200);
+  assert.ok(r.erro_detalhe.includes(`cd ${path.join("/raiz", "guara-encartes")} && npx playwright install chromium-headless-shell`));
+});
+
+test("instalação que lança erro também termina em navegador_ausente", async () => {
+  const r = await silenciar(() => garantirNavegador(REDE_NAV, {
+    root: "/raiz",
+    executavel: async () => null,
+    existe: async () => false,
+    instalar: async () => { throw new Error("sem rede https://registro.test/x"); },
+  }));
+  assert.equal(r.ok, false);
+  assert.equal(r.causa, "navegador_ausente");
+});
+
+test("checarNavegadores segue com as outras redes e ignora as sem Playwright", async () => {
+  const redes = [
+    { nome: "Boa", slug: "boa", pasta: "boa", deps: { playwright: true } },
+    { nome: "Quebrada", slug: "quebrada", pasta: "quebrada", deps: { playwright: true } },
+    { nome: "SemNav", slug: "semnav", pasta: "semnav", deps: { playwright: false } },
+  ];
+  const consultadas = [];
+  const indisponiveis = await silenciar(() => checarNavegadores(redes, {
+    root: "/raiz",
+    executavel: async (pasta) => { consultadas.push(path.basename(pasta)); return path.basename(pasta) === "boa" ? "/ok" : "/falta"; },
+    existe: async (c) => c === "/ok",
+    instalar: async () => {},
+  }));
+  assert.deepEqual([...indisponiveis.keys()], ["quebrada"]);
+  assert.equal(indisponiveis.get("quebrada").causa, "navegador_ausente");
+  assert.equal(consultadas.includes("semnav"), false);
+  assert.ok(consultadas.includes("boa"));
+});
+
+test("executablePath do Chromium completo vale pelo headless shell do mesmo build", async () => {
+  const marcas = new Set(["/c/ms-playwright/chromium_headless_shell-1228/INSTALLATION_COMPLETE"]);
+  const existe = async (c) => marcas.has(c);
+  assert.equal(await navegadorPresente("/c/ms-playwright/chromium-1228/chrome-mac-arm64/Chrome", existe), true);
+  assert.equal(await navegadorPresente("/c/ms-playwright/chromium-1234/chrome-mac-arm64/Chrome", existe), false);
+  assert.equal(await navegadorPresente("/c/ms-playwright/chromium_headless_shell-1228/x/chrome-headless-shell", existe), true);
+  assert.equal(await navegadorPresente("/outro/chrome", existe), false);
+});
+
+test("lerExecutavel roda node -e dentro da pasta da rede e devolve null sem Playwright", async () => {
+  const pasta = await fs.mkdtemp(path.join(os.tmpdir(), "pw-falso-"));
+  const vazia = await fs.mkdtemp(path.join(os.tmpdir(), "pw-vazia-"));
+  await fs.mkdir(path.join(pasta, "node_modules", "playwright"), { recursive: true });
+  await fs.writeFile(
+    path.join(pasta, "node_modules", "playwright", "index.js"),
+    'module.exports = { chromium: { executablePath: () => "/falso/chromium-1/chrome" } };',
+  );
+  assert.equal(await lerExecutavel(pasta), "/falso/chromium-1/chrome");
+  assert.equal(await lerExecutavel(vazia), null);
+  await fs.rm(pasta, { recursive: true, force: true });
+  await fs.rm(vazia, { recursive: true, force: true });
+});

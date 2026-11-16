@@ -3,7 +3,8 @@
 const fs = require("fs/promises");
 const path = require("path");
 const os = require("os");
-const { spawn, execFileSync } = require("child_process");
+const { spawn, execFile, execFileSync } = require("child_process");
+const { promisify } = require("util");
 
 const fsSync = require("fs");
 const { REDES: REDES_PADRAO } = require("../lib/redes");
@@ -135,6 +136,78 @@ async function checarPlaywright(pasta) {
   }
 }
 
+const execFileAsync = promisify(execFile);
+
+const COMANDO_INSTALAR_NAVEGADOR = "npx playwright install chromium-headless-shell";
+const LER_EXECUTAVEL = 'process.stdout.write(require("playwright").chromium.executablePath())';
+
+// Pergunta ao próprio Playwright da pasta da rede onde ele espera o navegador.
+async function lerExecutavel(pasta) {
+  try {
+    const { stdout } = await execFileAsync(process.execPath, ["-e", LER_EXECUTAVEL], { cwd: pasta, timeout: 30_000 });
+    return stdout.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+// `npx playwright install` baixa o navegador e registra a pasta em .links do
+// Playwright, o que protege o build da limpeza feita por outros projetos.
+async function instalarNavegador(pasta) {
+  await execFileAsync("npx", ["playwright", "install", "chromium-headless-shell"], { cwd: pasta, timeout: 600_000 });
+}
+
+async function arquivoExiste(caminho) {
+  return fs.access(caminho).then(() => true, () => false);
+}
+
+// executablePath() aponta para o Chromium completo, mas os adaptadores rodam
+// com headless: true, que usa o chromium_headless_shell do MESMO build (é o que
+// o comando de instalação traz). Por isso, num caminho `.../chromium-<build>/...`
+// o que se confere é a marca de instalação do shell desse build; qualquer outro
+// caminho é conferido direto.
+async function navegadorPresente(caminho, existe) {
+  const m = /^(.*)[\\/]chromium(?:_headless_shell)?-(\d+)[\\/]/.exec(caminho);
+  if (m) return existe(path.join(m[1], `chromium_headless_shell-${m[2]}`, "INSTALLATION_COMPLETE"));
+  return existe(caminho);
+}
+
+// Confere o navegador de uma rede com Playwright; se faltar, instala uma vez e
+// confere de novo. Devolve { ok: true } ou { ok: false, causa, erro_detalhe }.
+async function garantirNavegador(rede, { root = ROOT, executavel = lerExecutavel, instalar = instalarNavegador, existe = arquivoExiste } = {}) {
+  const pasta = path.join(root, rede.pasta);
+  const conferir = async () => {
+    const caminho = await executavel(pasta);
+    return caminho !== null && caminho !== "" && navegadorPresente(caminho, existe);
+  };
+  if (await conferir()) return { ok: true, instalado: false };
+
+  console.log(`Navegador do Playwright ausente para ${rede.nome}; rodando: ${COMANDO_INSTALAR_NAVEGADOR}`);
+  try {
+    await instalar(pasta);
+  } catch (erro) {
+    console.log(`Instalação do navegador falhou para ${rede.nome}: ${sanitizarErro(erro.message)}`);
+  }
+  if (await conferir()) return { ok: true, instalado: true };
+  return {
+    ok: false,
+    causa: "navegador_ausente",
+    erro_detalhe: sanitizarErro(`navegador do Playwright ausente em ${rede.nome}; rode: cd ${pasta} && ${COMANDO_INSTALAR_NAVEGADOR}`),
+  };
+}
+
+// Redes com navegador que continuam sem navegador depois da tentativa de
+// instalação: ficam de fora da rodada, e as demais seguem.
+async function checarNavegadores(redes, opcoes = {}) {
+  const indisponiveis = new Map();
+  for (const rede of redes) {
+    if (!rede.deps.playwright) continue;
+    const r = await garantirNavegador(rede, opcoes);
+    if (!r.ok) indisponiveis.set(rede.slug, r);
+  }
+  return indisponiveis;
+}
+
 async function preChecagem() {
   const problemas = [];
 
@@ -163,6 +236,8 @@ async function preChecagem() {
   if (problemas.length > 0) {
     throw new Error(problemas.join("\n\n"));
   }
+
+  return checarNavegadores(REDES);
 }
 
 // ─── args ─────────────────────────────────────────────────────────────────────
@@ -348,7 +423,7 @@ async function main() {
     return;
   }
 
-  await preChecagem();
+  const semNavegador = await preChecagem();
 
   const inicioRodada = new Date();
   const dateLabel = dateFolderName(inicioRodada);
@@ -369,6 +444,17 @@ async function main() {
     const scriptPath = path.join(ROOT, rede.pasta, rede.script);
     const inicio = performance.now();
     emitirEvento({ rede: rede.slug, evento: "download_iniciado", espera_ms: inicio - entradaFila });
+    if (semNavegador.has(rede.slug)) {
+      const { causa, erro_detalhe } = semNavegador.get(rede.slug);
+      console.log(`─── ${rede.nome} ───\n${erro_detalhe}\n`);
+      resultados[idx] = {
+        nome: rede.nome, slug: rede.slug, ok: false, pasta_download: null,
+        erro: "navegador do Playwright ausente", causa, erro_detalhe,
+        log: { stderr: null, downloads: null }, manifest: null,
+      };
+      emitirEvento({ rede: rede.slug, evento: "download_falhou", ms: performance.now() - inicio, erro: `${causa}: ${erro_detalhe}` });
+      return;
+    }
     const { code, erroSpawn, saida, stderr } = await rodarScript(scriptPath, argsPorRede(rede, args), {
       // O filho não sabe o slug; o orquestrador carimba a rede de cada evento.
       aoEvento: (evento) => emitirEvento({ ...evento, rede: rede.slug }),
@@ -469,4 +555,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { classificarCausa, detalheDoErro, montarResultadoJson, pastaDoResumo, lerConcorrencia, REDES };
+module.exports = { checarNavegadores, classificarCausa, garantirNavegador, lerExecutavel, navegadorPresente, detalheDoErro, montarResultadoJson, pastaDoResumo, lerConcorrencia, REDES };

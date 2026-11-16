@@ -20,7 +20,7 @@ Saída: `~/Downloads/Encartes/<Rede>/DD-Mês/`, uma pasta por rede, formato idê
 
 ## Como funciona
 
-1. Pré-checagem: confere `pdfinfo`/`pdftoppm` (poppler) e o `node_modules/playwright` de São Luiz, Super do Povo, Guará e Assaí. Falhando algo, para ali, sem baixar nada, e mostra o comando exato pra corrigir.
+1. Pré-checagem: confere `pdfinfo`/`pdftoppm` (poppler) e o `node_modules/playwright` de São Luiz, Super do Povo, Guará e Assaí. Falhando algo, para ali, sem baixar nada, e mostra o comando exato pra corrigir. Depois confere se o navegador do Playwright de cada uma dessas redes existe no disco (`chromium.executablePath()` rodado dentro da pasta da rede). Se faltar, roda uma vez `npx playwright install chromium-headless-shell` naquela pasta; se continuar faltando, só aquela rede sai com `causa: "navegador_ausente"` e o comando exato em `erro_detalhe`, e as outras seguem. As quatro redes usam a mesma versão exata do Playwright (teste em `lib/playwright-versao.test.js`); ao subir a versão, mude as quatro pastas juntas.
 2. Roda `cometa-encartes` → `saoluiz-encartes` → `mercadao-encartes` → `superdopovo-encartes` → `atacadao-encartes` → `guara-encartes` → `assai-encartes` → `frangolandia-encartes` → `mateus-encartes` → `centerbox-encartes` → `uniforca-encartes`, um de cada vez (evita dois navegadores headless simultâneos).
 3. Rede que falha não trava as outras — o orquestrador segue pras próximas e reporta a falha no resumo final.
 4. Ao final, imprime um resumo consolidado (encartes, páginas, novas vs. reaproveitadas, por rede).
