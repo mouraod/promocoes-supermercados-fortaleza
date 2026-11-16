@@ -6,6 +6,7 @@
 
 const { chromium } = require("playwright");
 const { baixarEncartes, parsearArgs, slugify } = require("../lib/pipeline");
+const log = require("../lib/log-requisicoes");
 
 const FOLHETOS_URL = "https://supermercadoguara.com.br/folhetos";
 const MAX_PAGINAS_POR_ENCARTE = 50;
@@ -19,17 +20,23 @@ async function probePageCount(capaUrl) {
   let count = 1;
   for (let p = 2; p <= MAX_PAGINAS_POR_ENCARTE; p += 1) {
     const url = `${stem}-${p}${ext}`;
+    const inicio = performance.now();
     try {
       const res = await fetch(url, {
         method: "GET",
         headers: { "User-Agent": UA, Range: "bytes=0-0" },
+      });
+      log.registrar({
+        etapa: "sonda", url, status: res.status,
+        bytes: Number(res.headers.get("content-length")) || null, ms: performance.now() - inicio,
       });
       if (res.ok || res.status === 206) {
         count = p;
       } else {
         break;
       }
-    } catch {
+    } catch (error) {
+      log.registrar({ etapa: "sonda", url, ms: performance.now() - inicio, erro: error.message });
       break;
     }
   }
@@ -44,11 +51,23 @@ function pageUrl(capaUrl, page) {
 }
 
 async function fetchEncartesDoDOM() {
+  const inicio = performance.now();
+  // Qualquer falha da descoberta (navegador ausente, goto, seletor) fica no log.
+  try {
+    return await lerCardsDoDOM(inicio);
+  } catch (error) {
+    log.registrar({ etapa: "descoberta", url: FOLHETOS_URL, ms: performance.now() - inicio, erro: error.message.split("\n")[0] });
+    throw error;
+  }
+}
+
+async function lerCardsDoDOM(inicio) {
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ userAgent: UA });
 
-    await page.goto(FOLHETOS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
+    const resposta = await page.goto(FOLHETOS_URL, { waitUntil: "domcontentloaded", timeout: 60000 });
+    log.registrar({ etapa: "descoberta", url: FOLHETOS_URL, status: resposta?.status() ?? null, ms: performance.now() - inicio });
     await page.waitForSelector(".card-folheto img[src]", { state: "attached", timeout: 30000 });
 
     return await page.evaluate(() => {

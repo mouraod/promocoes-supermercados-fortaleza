@@ -428,3 +428,218 @@ test("sem --paralelo o baixar-todos continua sequencial", async () => {
   assert.equal(pico(lerPool(log)), 1);
   await fs.rm(root, { recursive: true, force: true });
 });
+
+// ─── CR-02: causa, erro_detalhe e logs da rede que falha ─────────────────────
+
+// Rede falsa que usa o pipeline real: registra a descoberta no log local e
+// falha com a mensagem pedida (sem rede, sem Playwright).
+function scriptRedeQueFalha({ nome, mensagem }) {
+  return `"use strict";
+const log = require(${JSON.stringify(path.join(__dirname, "..", "lib", "log-requisicoes.js"))});
+const { baixarEncartes } = require(${JSON.stringify(PIPELINE)});
+async function main() {
+  const base = process.argv[process.argv.indexOf("--base") + 1];
+  await baixarEncartes({
+    rede: ${JSON.stringify(nome)},
+    descobrir: async () => {
+      log.registrar({ etapa: "descoberta", url: "https://exemplo.test/folhetos", erro: "falhou na descoberta" });
+      throw new Error(${JSON.stringify(mensagem)});
+    },
+    args: { base, output: null, semReuso: true, dpi: 150 },
+  });
+}
+main().catch((e) => { console.error("linha anterior do stderr"); console.error(e.message); process.exit(1); });
+`;
+}
+
+async function registroQueFalha(redes) {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "baixar-todos-causa-"));
+  const registro = { root, redes: [] };
+  for (const rede of redes) {
+    await fs.mkdir(path.join(root, rede.slug), { recursive: true });
+    await fs.writeFile(path.join(root, rede.slug, "rede.js"), scriptRedeQueFalha(rede));
+    registro.redes.push({
+      nome: rede.nome, slug: rede.slug, pasta: rede.slug, script: "rede.js",
+      flags: [], deps: { poppler: false, playwright: false },
+    });
+  }
+  const arquivo = path.join(root, "redes.json");
+  await fs.writeFile(arquivo, JSON.stringify(registro));
+  return { root, arquivo };
+}
+
+test("rede que falha leva causa, erro_detalhe e os caminhos dos logs", async () => {
+  const redes = [
+    { nome: "SemNavegador", slug: "semnavegador", mensagem: "browserType.launch: Executable doesn't exist at /x/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell\nRun playwright install" },
+    { nome: "Lenta", slug: "lenta", mensagem: "page.waitForResponse: Timeout 90000ms exceeded." },
+    { nome: "Cdn", slug: "cdn", mensagem: "Falha 403 ao baixar https://cdn.exemplo.test/a.webp?token=" + SENTINELA },
+    { nome: "Fora", slug: "fora", mensagem: "TypeError: fetch failed" },
+    { nome: "Estranha", slug: "estranha", mensagem: "algo que ninguém previu" },
+  ];
+  const { root, arquivo } = await registroQueFalha(redes);
+  const { code, stdout, stderr } = await rodarBaixarTodos(arquivo, path.join(root, "base"), { eventos: false });
+  assert.equal(code, 1);
+  const json = resumoJson(stdout);
+  const por = Object.fromEntries(json.redes.map((r) => [r.rede, r]));
+
+  assert.deepEqual(Object.fromEntries(json.redes.map((r) => [r.rede, r.causa])), {
+    semnavegador: "navegador_ausente",
+    lenta: "tempo_esgotado",
+    cdn: "http_403",
+    fora: "rede",
+    estranha: "outro",
+  });
+  for (const r of json.redes) {
+    assert.equal(r.ok, false);
+    assert.equal(r.erro, "saiu com código 1", "o campo erro antigo continua");
+    assert.ok(r.erro_detalhe.length > 0 && r.erro_detalhe.length <= 200);
+  }
+  // Última linha não vazia do stderr, sem URL nem segredo.
+  assert.match(por.semnavegador.erro_detalhe, /Run playwright install/);
+  assert.equal(por.cdn.erro_detalhe.includes("https://"), false);
+  assert.equal(por.cdn.erro_detalhe.includes(SENTINELA), false);
+  assert.equal(stdout.split("\n").at(-1).includes(SENTINELA), false);
+
+  // stderr.txt completo e downloads.jsonl na pasta da rodada, mesmo com falha.
+  const sem = por.semnavegador.log;
+  assert.match(sem.stderr, /SemNavegador[\\/][^\\/]+[\\/]stderr\.txt$/);
+  const texto = await fs.readFile(sem.stderr, "utf8");
+  assert.match(texto, /linha anterior do stderr/);
+  assert.match(texto, /Executable doesn't exist/);
+  assert.match(sem.downloads, /downloads\.jsonl$/);
+  const linhas = (await fs.readFile(sem.downloads, "utf8")).trim().split("\n").map((l) => JSON.parse(l));
+  assert.equal(linhas[0].etapa, "descoberta");
+  assert.equal(linhas[0].rede, "SemNavegador");
+  assert.equal(linhas[0].url, "https://exemplo.test/folhetos");
+  assert.match(stdout, /FALHOU \(navegador_ausente\)/);
+
+  await fs.rm(root, { recursive: true, force: true });
+});
+
+test("classificarCausa reconhece cada causa pelo stderr", () => {
+  const { classificarCausa, detalheDoErro } = require("./baixar-todos");
+  assert.equal(classificarCausa("browserType.launch: Executable doesn't exist at /x"), "navegador_ausente");
+  assert.equal(classificarCausa("Timeout 30000ms exceeded"), "tempo_esgotado");
+  assert.equal(classificarCausa("AbortError: This operation was aborted"), "tempo_esgotado");
+  assert.equal(classificarCausa("Tempo esgotado (30000 ms) ao baixar https://x.test/a"), "tempo_esgotado");
+  assert.equal(classificarCausa("Falha 503 ao baixar https://x.test/a"), "http_503");
+  assert.equal(classificarCausa("Error: connect ECONNREFUSED 127.0.0.1:1"), "rede");
+  assert.equal(classificarCausa("getaddrinfo ENOTFOUND x.test"), "rede");
+  assert.equal(classificarCausa("TypeError: fetch failed"), "rede");
+  assert.equal(classificarCausa(""), "outro");
+  assert.equal(detalheDoErro("a\n\n@@mmb-evento {}\nultima https://x.test/p?q=1\n\n"), "ultima [url]");
+  assert.equal(detalheDoErro(""), "");
+});
+
+test("rede que dá certo não ganha causa nem log no JSON", async () => {
+  const { root, arquivo } = await montarRegistro([{ nome: "Boa", slug: "boa", pdf: false }]);
+  const { code, stdout } = await rodarBaixarTodos(arquivo, path.join(root, "base"), { eventos: false });
+  assert.equal(code, 0);
+  assert.deepEqual(Object.keys(resumoJson(stdout).redes[0]), ["rede", "ok", "pasta_download", "erro"]);
+  await fs.rm(root, { recursive: true, force: true });
+});
+
+// ─── CR-03: pré-checagem do navegador (sem instalar nada de verdade) ─────────
+
+const { checarNavegadores, garantirNavegador, lerExecutavel, navegadorPresente } = require("./baixar-todos");
+
+const REDE_NAV = { nome: "Guara", slug: "guara", pasta: "guara-encartes", deps: { playwright: true } };
+
+function silenciar(fn) {
+  const original = console.log;
+  console.log = () => {};
+  return Promise.resolve(fn()).finally(() => { console.log = original; });
+}
+
+test("navegador presente: não instala", async () => {
+  const instalacoes = [];
+  const r = await silenciar(() => garantirNavegador(REDE_NAV, {
+    root: "/raiz",
+    executavel: async () => "/cache/chrome",
+    existe: async (c) => c === "/cache/chrome",
+    instalar: async (pasta) => { instalacoes.push(pasta); },
+  }));
+  assert.deepEqual(r, { ok: true, instalado: false });
+  assert.deepEqual(instalacoes, []);
+});
+
+test("navegador ausente: instala uma vez na pasta da rede e confere de novo", async () => {
+  const instalacoes = [];
+  let instalado = false;
+  const r = await silenciar(() => garantirNavegador(REDE_NAV, {
+    root: "/raiz",
+    executavel: async () => "/cache/chrome",
+    existe: async () => instalado,
+    instalar: async (pasta) => { instalacoes.push(pasta); instalado = true; },
+  }));
+  assert.deepEqual(r, { ok: true, instalado: true });
+  assert.deepEqual(instalacoes, [path.join("/raiz", "guara-encartes")]);
+});
+
+test("continua ausente depois de instalar: navegador_ausente com o comando exato", async () => {
+  let instalacoes = 0;
+  const r = await silenciar(() => garantirNavegador(REDE_NAV, {
+    root: "/raiz",
+    executavel: async () => "/cache/chrome",
+    existe: async () => false,
+    instalar: async () => { instalacoes += 1; },
+  }));
+  assert.equal(instalacoes, 1, "tenta instalar uma única vez");
+  assert.equal(r.ok, false);
+  assert.equal(r.causa, "navegador_ausente");
+  assert.ok(r.erro_detalhe.length <= 200);
+  assert.ok(r.erro_detalhe.includes(`cd ${path.join("/raiz", "guara-encartes")} && npx playwright install chromium-headless-shell`));
+});
+
+test("instalação que lança erro também termina em navegador_ausente", async () => {
+  const r = await silenciar(() => garantirNavegador(REDE_NAV, {
+    root: "/raiz",
+    executavel: async () => null,
+    existe: async () => false,
+    instalar: async () => { throw new Error("sem rede https://registro.test/x"); },
+  }));
+  assert.equal(r.ok, false);
+  assert.equal(r.causa, "navegador_ausente");
+});
+
+test("checarNavegadores segue com as outras redes e ignora as sem Playwright", async () => {
+  const redes = [
+    { nome: "Boa", slug: "boa", pasta: "boa", deps: { playwright: true } },
+    { nome: "Quebrada", slug: "quebrada", pasta: "quebrada", deps: { playwright: true } },
+    { nome: "SemNav", slug: "semnav", pasta: "semnav", deps: { playwright: false } },
+  ];
+  const consultadas = [];
+  const indisponiveis = await silenciar(() => checarNavegadores(redes, {
+    root: "/raiz",
+    executavel: async (pasta) => { consultadas.push(path.basename(pasta)); return path.basename(pasta) === "boa" ? "/ok" : "/falta"; },
+    existe: async (c) => c === "/ok",
+    instalar: async () => {},
+  }));
+  assert.deepEqual([...indisponiveis.keys()], ["quebrada"]);
+  assert.equal(indisponiveis.get("quebrada").causa, "navegador_ausente");
+  assert.equal(consultadas.includes("semnav"), false);
+  assert.ok(consultadas.includes("boa"));
+});
+
+test("executablePath do Chromium completo vale pelo headless shell do mesmo build", async () => {
+  const marcas = new Set(["/c/ms-playwright/chromium_headless_shell-1228/INSTALLATION_COMPLETE"]);
+  const existe = async (c) => marcas.has(c);
+  assert.equal(await navegadorPresente("/c/ms-playwright/chromium-1228/chrome-mac-arm64/Chrome", existe), true);
+  assert.equal(await navegadorPresente("/c/ms-playwright/chromium-1234/chrome-mac-arm64/Chrome", existe), false);
+  assert.equal(await navegadorPresente("/c/ms-playwright/chromium_headless_shell-1228/x/chrome-headless-shell", existe), true);
+  assert.equal(await navegadorPresente("/outro/chrome", existe), false);
+});
+
+test("lerExecutavel roda node -e dentro da pasta da rede e devolve null sem Playwright", async () => {
+  const pasta = await fs.mkdtemp(path.join(os.tmpdir(), "pw-falso-"));
+  const vazia = await fs.mkdtemp(path.join(os.tmpdir(), "pw-vazia-"));
+  await fs.mkdir(path.join(pasta, "node_modules", "playwright"), { recursive: true });
+  await fs.writeFile(
+    path.join(pasta, "node_modules", "playwright", "index.js"),
+    'module.exports = { chromium: { executablePath: () => "/falso/chromium-1/chrome" } };',
+  );
+  assert.equal(await lerExecutavel(pasta), "/falso/chromium-1/chrome");
+  assert.equal(await lerExecutavel(vazia), null);
+  await fs.rm(pasta, { recursive: true, force: true });
+  await fs.rm(vazia, { recursive: true, force: true });
+});

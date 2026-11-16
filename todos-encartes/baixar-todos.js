@@ -3,11 +3,14 @@
 const fs = require("fs/promises");
 const path = require("path");
 const os = require("os");
-const { spawn, execFileSync } = require("child_process");
+const { spawn, execFile, execFileSync } = require("child_process");
+const { promisify } = require("util");
 
 const fsSync = require("fs");
 const { REDES: REDES_PADRAO } = require("../lib/redes");
-const { emitirEvento, lerLinhas } = require("../lib/eventos");
+const { emitirEvento, lerLinhas, sanitizarErro } = require("../lib/eventos");
+const { dateFolderName } = require("../lib/pipeline");
+const { NOME_ARQUIVO: ARQUIVO_DOWNLOADS } = require("../lib/log-requisicoes");
 const { criarCorretorConversao, orcamentoConversoes } = require("../lib/conversao");
 
 // Orçamento global de pdftoppm simultâneos, somando todas as redes: as redes
@@ -33,17 +36,7 @@ function carregarRegistro() {
 
 const { REDES, ROOT } = carregarRegistro();
 
-const MESES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
-
 // ─── helpers ──────────────────────────────────────────────────────────────────
-
-function dateFolderName(date) {
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${d}-${MESES[date.getMonth()]}`;
-}
 
 async function lerManifestSeExistir(destino) {
   try {
@@ -58,6 +51,7 @@ function rodarScript(scriptPath, args, { aoEvento = () => {} } = {}) {
   return new Promise((resolve) => {
     let erroSpawn = null;
     let saida = "";
+    let stderr = ""; // só o texto do stderr (as linhas de evento seguem por aoEvento)
     // O 4º canal (IPC) só carrega pedidos/liberações de vaga de conversão;
     // stdout e stderr continuam iguais.
     const proc = spawn("node", [scriptPath, ...args], {
@@ -71,10 +65,52 @@ function rodarScript(scriptPath, args, { aoEvento = () => {} } = {}) {
     // O stderr é lido linha a linha: eventos de progresso seguem na hora para
     // o pai; o resto continua acumulado no bloco como antes.
     proc.stdout.on("data", (chunk) => { saida += chunk; });
-    lerLinhas(proc.stderr, { aoEvento, aoTexto: (texto) => { saida += texto; } });
+    lerLinhas(proc.stderr, { aoEvento, aoTexto: (texto) => { saida += texto; stderr += texto; } });
     proc.on("error", (err) => { erroSpawn = err; });
-    proc.on("close", (code) => resolve({ code, erroSpawn, saida }));
+    proc.on("close", (code) => resolve({ code, erroSpawn, saida, stderr }));
   });
+}
+
+// ─── causa da falha ───────────────────────────────────────────────────────────
+
+// Classifica o stderr de uma rede que falhou. A ordem importa: navegador
+// ausente e status HTTP são mais específicos que tempo esgotado e rede.
+function classificarCausa(stderr) {
+  const texto = String(stderr ?? "");
+  if (/Executable doesn't exist/i.test(texto)) return "navegador_ausente";
+  const http = /\bFalha (\d{3})\b/.exec(texto);
+  if (http) return `http_${http[1]}`;
+  if (/Timeout|exceeded|AbortError|tempo[ _]esgotado|timed out/i.test(texto)) return "tempo_esgotado";
+  if (/ECONN\w*|ENOTFOUND|EAI_AGAIN|fetch failed/i.test(texto)) return "rede";
+  return "outro";
+}
+
+// Última linha não vazia do stderr que não seja evento, sem URL nem credencial.
+function detalheDoErro(stderr) {
+  const linhas = String(stderr ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("@@mmb-evento"));
+  return sanitizarErro(linhas.at(-1) ?? "");
+}
+
+// stderr.txt na pasta da rodada, mesmo quando a rede falha (a pasta é criada).
+// Devolve os caminhos para o JSON; downloads.jsonl só aparece se existe.
+async function guardarLogs(pasta, stderr, { sempre }) {
+  const log = { stderr: null, downloads: null };
+  try {
+    if (stderr || sempre) {
+      await fs.mkdir(pasta, { recursive: true });
+      const caminho = path.join(pasta, "stderr.txt");
+      await fs.writeFile(caminho, stderr);
+      log.stderr = caminho;
+    }
+    const downloads = path.join(pasta, ARQUIVO_DOWNLOADS);
+    if (await fs.access(downloads).then(() => true, () => false)) log.downloads = downloads;
+  } catch {
+    // Guardar o log nunca derruba a rodada.
+  }
+  return log;
 }
 
 // ─── pré-checagem ─────────────────────────────────────────────────────────────
@@ -98,6 +134,78 @@ async function checarPlaywright(pasta) {
   } catch {
     return false;
   }
+}
+
+const execFileAsync = promisify(execFile);
+
+const COMANDO_INSTALAR_NAVEGADOR = "npx playwright install chromium-headless-shell";
+const LER_EXECUTAVEL = 'process.stdout.write(require("playwright").chromium.executablePath())';
+
+// Pergunta ao próprio Playwright da pasta da rede onde ele espera o navegador.
+async function lerExecutavel(pasta) {
+  try {
+    const { stdout } = await execFileAsync(process.execPath, ["-e", LER_EXECUTAVEL], { cwd: pasta, timeout: 30_000 });
+    return stdout.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+// `npx playwright install` baixa o navegador e registra a pasta em .links do
+// Playwright, o que protege o build da limpeza feita por outros projetos.
+async function instalarNavegador(pasta) {
+  await execFileAsync("npx", ["playwright", "install", "chromium-headless-shell"], { cwd: pasta, timeout: 600_000 });
+}
+
+async function arquivoExiste(caminho) {
+  return fs.access(caminho).then(() => true, () => false);
+}
+
+// executablePath() aponta para o Chromium completo, mas os adaptadores rodam
+// com headless: true, que usa o chromium_headless_shell do MESMO build (é o que
+// o comando de instalação traz). Por isso, num caminho `.../chromium-<build>/...`
+// o que se confere é a marca de instalação do shell desse build; qualquer outro
+// caminho é conferido direto.
+async function navegadorPresente(caminho, existe) {
+  const m = /^(.*)[\\/]chromium(?:_headless_shell)?-(\d+)[\\/]/.exec(caminho);
+  if (m) return existe(path.join(m[1], `chromium_headless_shell-${m[2]}`, "INSTALLATION_COMPLETE"));
+  return existe(caminho);
+}
+
+// Confere o navegador de uma rede com Playwright; se faltar, instala uma vez e
+// confere de novo. Devolve { ok: true } ou { ok: false, causa, erro_detalhe }.
+async function garantirNavegador(rede, { root = ROOT, executavel = lerExecutavel, instalar = instalarNavegador, existe = arquivoExiste } = {}) {
+  const pasta = path.join(root, rede.pasta);
+  const conferir = async () => {
+    const caminho = await executavel(pasta);
+    return caminho !== null && caminho !== "" && navegadorPresente(caminho, existe);
+  };
+  if (await conferir()) return { ok: true, instalado: false };
+
+  console.log(`Navegador do Playwright ausente para ${rede.nome}; rodando: ${COMANDO_INSTALAR_NAVEGADOR}`);
+  try {
+    await instalar(pasta);
+  } catch (erro) {
+    console.log(`Instalação do navegador falhou para ${rede.nome}: ${sanitizarErro(erro.message)}`);
+  }
+  if (await conferir()) return { ok: true, instalado: true };
+  return {
+    ok: false,
+    causa: "navegador_ausente",
+    erro_detalhe: sanitizarErro(`navegador do Playwright ausente em ${rede.nome}; rode: cd ${pasta} && ${COMANDO_INSTALAR_NAVEGADOR}`),
+  };
+}
+
+// Redes com navegador que continuam sem navegador depois da tentativa de
+// instalação: ficam de fora da rodada, e as demais seguem.
+async function checarNavegadores(redes, opcoes = {}) {
+  const indisponiveis = new Map();
+  for (const rede of redes) {
+    if (!rede.deps.playwright) continue;
+    const r = await garantirNavegador(rede, opcoes);
+    if (!r.ok) indisponiveis.set(rede.slug, r);
+  }
+  return indisponiveis;
 }
 
 async function preChecagem() {
@@ -128,6 +236,8 @@ async function preChecagem() {
   if (problemas.length > 0) {
     throw new Error(problemas.join("\n\n"));
   }
+
+  return checarNavegadores(REDES);
 }
 
 // ─── args ─────────────────────────────────────────────────────────────────────
@@ -203,6 +313,13 @@ Saída padrão:
 
 Com --json, a última linha é:
   {"redes":[{"rede":"cometa","ok":true,"pasta_download":"...","erro":null}]}
+
+Rede que falha acrescenta, ao lado de "erro":
+  "causa": navegador_ausente | tempo_esgotado | http_<status> | rede | outro
+  "erro_detalhe": última linha do stderr (sem URL, até 200 caracteres)
+  "log": {"stderr": ".../stderr.txt", "downloads": ".../downloads.jsonl" | null}
+O stderr.txt e o downloads.jsonl (uma linha por requisição) ficam na pasta da
+rodada da rede, só no disco local.
 `);
 }
 
@@ -240,6 +357,8 @@ function montarResultadoJson(resultados) {
       ok: Boolean(r.ok),
       pasta_download: r.pasta_download ?? null,
       erro: r.erro ?? null,
+      // Só rede que falhou: causa classificada, última linha do stderr e os logs.
+      ...(r.causa ? { causa: r.causa, erro_detalhe: r.erro_detalhe ?? "", log: r.log ?? { stderr: null, downloads: null } } : {}),
     })),
   };
 }
@@ -281,7 +400,8 @@ function imprimirResumo(base, resultados) {
       ok += 1;
       console.log(`  ${nome}OK (sem manifest.json pra detalhar)`);
     } else {
-      console.log(`  ${nome}FALHOU: ${r.erro}`);
+      const causa = r.causa ? ` (${r.causa})` : "";
+      console.log(`  ${nome}FALHOU${causa}: ${r.erro_detalhe || r.erro}`);
     }
   }
 
@@ -303,9 +423,10 @@ async function main() {
     return;
   }
 
-  await preChecagem();
+  const semNavegador = await preChecagem();
 
-  const dateLabel = dateFolderName(new Date());
+  const inicioRodada = new Date();
+  const dateLabel = dateFolderName(inicioRodada);
   console.log(`Rodada ${dateLabel}\n`);
 
   // Pool simples: no máximo `limite` rodarScript em voo. O limite vem
@@ -323,12 +444,23 @@ async function main() {
     const scriptPath = path.join(ROOT, rede.pasta, rede.script);
     const inicio = performance.now();
     emitirEvento({ rede: rede.slug, evento: "download_iniciado", espera_ms: inicio - entradaFila });
-    const { code, erroSpawn, saida } = await rodarScript(scriptPath, argsPorRede(rede, args), {
+    if (semNavegador.has(rede.slug)) {
+      const { causa, erro_detalhe } = semNavegador.get(rede.slug);
+      console.log(`─── ${rede.nome} ───\n${erro_detalhe}\n`);
+      resultados[idx] = {
+        nome: rede.nome, slug: rede.slug, ok: false, pasta_download: null,
+        erro: "navegador do Playwright ausente", causa, erro_detalhe,
+        log: { stderr: null, downloads: null }, manifest: null,
+      };
+      emitirEvento({ rede: rede.slug, evento: "download_falhou", ms: performance.now() - inicio, erro: `${causa}: ${erro_detalhe}` });
+      return;
+    }
+    const { code, erroSpawn, saida, stderr } = await rodarScript(scriptPath, argsPorRede(rede, args), {
       // O filho não sabe o slug; o orquestrador carimba a rede de cada evento.
       aoEvento: (evento) => emitirEvento({ ...evento, rede: rede.slug }),
     });
     try {
-      await registrarResultado(idx, { code, erroSpawn, saida });
+      await registrarResultado(idx, { code, erroSpawn, saida, stderr });
     } finally {
       const r = resultados[idx];
       emitirEvento({
@@ -337,40 +469,48 @@ async function main() {
         ms: performance.now() - inicio,
         // A pasta sai já no evento: o pai começa o envio desta rede sem
         // esperar o JSON agregado do fim, que continua igual.
-        ...(r?.ok ? { pasta_download: r.pasta_download } : { erro: r?.erro ?? "falha desconhecida" }),
+        ...(r?.ok
+          ? { pasta_download: r.pasta_download }
+          : { erro: r?.causa ? `${r.causa}: ${r.erro_detalhe}` : (r?.erro ?? "falha desconhecida") }),
       });
     }
   }
 
-  async function registrarResultado(idx, { code, erroSpawn, saida }) {
+  async function registrarResultado(idx, { code, erroSpawn, saida, stderr }) {
     const rede = REDES[idx];
     console.log(`─── ${rede.nome} ───\n${saida}\n`);
 
-    if (erroSpawn || code !== 0) {
-      resultados[idx] = {
-        nome: rede.nome,
-        slug: rede.slug,
-        ok: false,
-        pasta_download: null,
-        erro: erroSpawn ? erroSpawn.message : `saiu com código ${code}`,
-        manifest: null,
-      };
-      return;
-    }
-
+    // Pasta da rodada desta rede: a que o próprio script reportou ou, quando ele
+    // falhou antes de reportar, a mesma que o pipeline usa (<base>/<Rede>/<DD-Mês>).
     const destino = pastaDoResumo(saida);
-    if (!destino) {
+    const pastaRodada = destino ?? path.join(args.base, rede.nome, dateFolderName(inicioRodada));
+
+    async function falha(erro, textoErro) {
+      const log = await guardarLogs(pastaRodada, stderr, { sempre: true });
       resultados[idx] = {
         nome: rede.nome,
         slug: rede.slug,
         ok: false,
         pasta_download: null,
-        erro: "não consegui identificar a pasta desta execução (linha Destino ausente)",
+        erro,
+        causa: classificarCausa(textoErro),
+        erro_detalhe: detalheDoErro(textoErro) || sanitizarErro(erro),
+        log,
         manifest: null,
       };
+    }
+
+    if (erroSpawn || code !== 0) {
+      await falha(erroSpawn ? erroSpawn.message : `saiu com código ${code}`, erroSpawn ? `${stderr}\n${erroSpawn.message}` : stderr);
       return;
     }
 
+    if (!destino) {
+      await falha("não consegui identificar a pasta desta execução (linha Destino ausente)", "não consegui identificar a pasta desta execução (linha Destino ausente)");
+      return;
+    }
+
+    await guardarLogs(destino, stderr, { sempre: false });
     const manifest = await lerManifestSeExistir(destino);
     resultados[idx] = { nome: rede.nome, slug: rede.slug, ok: true, pasta_download: destino, erro: null, manifest };
   }
@@ -415,4 +555,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { montarResultadoJson, pastaDoResumo, lerConcorrencia, REDES };
+module.exports = { checarNavegadores, classificarCausa, garantirNavegador, lerExecutavel, navegadorPresente, detalheDoErro, montarResultadoJson, pastaDoResumo, lerConcorrencia, REDES };
